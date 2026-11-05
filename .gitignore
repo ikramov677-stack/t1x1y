@@ -1,0 +1,5 @@
+build/video_noaudio.mp4
+build/audio/*.wav
+build/render.log
+build/audio/t.mp3
+__pycache__/
