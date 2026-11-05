@@ -81,15 +81,13 @@ LINES = [
     "Всё из-за плотной атмосферы, которая держит тепло, как одеяло.",
     "Подписывайтесь на «Факты за минуту»!",
 ]
-# estimated pacing until the real voiceover arrives (~13 chars/s + breathing room)
-SCENE_DUR = [max(3.2, len(s) / 13.0 + 1.2) for s in LINES]
-SCENE_DUR[0] += 0.6
-SCENE_DUR[-1] = 5.5
-VO = []  # (start, dur, text) — speech intervals
-_t = 0.0
-for _s, _d in zip(LINES, SCENE_DUR):
-    VO.append((_t + 0.3, _d - 0.9, _s))
-    _t += _d
+# ElevenLabs voiceover (audio/el4.mp3), placed at VOICE_OFFSET; one phrase per scene: (start, end) in source time
+SPANS = [(0.0, 2.21), (2.63, 4.88), (5.34, 8.37), (8.79, 12.33), (12.75, 17.16), (17.59, 20.01), (20.28, 22.29),
+         (22.70, 26.87), (27.25, 30.07), (30.45, 33.95), (34.36, 36.44)]
+VOICE_OFFSET = 0.35
+_on = [sp[0] + VOICE_OFFSET for sp in SPANS]
+SCENE_DUR = [(_on[k + 1] if k + 1 < len(_on) else _on[k] + 4.6) - (0 if k == 0 else _on[k]) for k in range(len(_on))]
+VO = [(a + VOICE_OFFSET, b - a, s) for (a, b), s in zip(SPANS, LINES)]
 STARTS = [sum(SCENE_DUR[:k]) for k in range(len(SCENE_DUR))]
 DUR = sum(SCENE_DUR)
 XFADE = 0.45
