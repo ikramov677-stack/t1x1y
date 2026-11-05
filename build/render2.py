@@ -16,25 +16,48 @@ import render as R
 from render import (W, H, FPS, OCT, OCT_DARK, OCT_LIGHT, clamp, prog, ease_out, ease_io, back_out, lerp, text,
                     pop_text, bezier, draw_octopus, octo_layer, draw_seabed, draw_ambient, beat)
 
-DUR = 60.0
 
 # ------------------------------------------------------------------ voice / subtitles
-# Script slots (start, end, line). When the real voiceover arrives these get re-timed.
-SLOTS = [
-    (0, 5, "В прошлом видео я обещал рассказать про девять мозгов осьминога. Держите!"),
-    (5, 15, "Один главный мозг находится в голове. А ещё в каждом из восьми щупалец есть свой нервный центр — как маленький мозг."),
-    (15, 24, "У осьминога около 500 миллионов нейронов. И примерно две трети из них — не в голове, а в щупальцах!"),
-    (24, 35, "Поэтому щупальца могут «думать» сами: искать еду, ощупывать предметы и даже пробовать их на вкус — пока главный мозг занят другим."),
-    (35, 45, "Неудивительно, что осьминоги так умны. Они умеют откручивать крышки банок — даже изнутри!"),
-    (45, 53, "А некоторые носят с собой скорлупу кокоса и прячутся в ней, как в переносном домике."),
-    (53, 60, "Подписывайтесь на «Факты за минуту» — завтра новый удивительный факт!"),
+# ElevenLabs voiceover (audio/el2.mp3): speech chunks in source time, grouped per scene.
+VO_SRC = [
+    [(0.00, 3.42, "В прошлом видео я обещал рассказать про девять мозгов осьминога."), (3.74, 4.32, "Держите!")],
+    [(4.79, 6.81, "Один главный мозг находится в голове."), (7.23, 10.52, "А ещё в каждом из восьми щупалец есть свой нервный центр —"),
+     (10.79, 11.64, "как маленький мозг.")],
+    [(12.12, 14.72, "У осьминога около 500 миллионов нейронов."), (15.12, 18.36, "И примерно две трети из них — не в голове, а в щупальцах!")],
+    [(18.85, 20.88, "Поэтому щупальца могут «думать» сами:"), (21.23, 24.80, "искать еду, ощупывать предметы и даже пробовать их на вкус —"),
+     (25.06, 26.70, "пока главный мозг занят другим.")],
+    [(27.21, 29.20, "Неудивительно, что осьминоги так умны."), (29.57, 32.69, "Они умеют откручивать крышки банок — даже изнутри!")],
+    [(33.14, 37.54, "А некоторые носят с собой скорлупу кокоса и прячутся в ней, как в переносном домике.")],
+    [(38.05, 42.19, "Подписывайтесь на «Факты за минуту» — завтра новый удивительный факт!")],
 ]
-R.VO = [(a + 0.25, b - a - 0.7, line) for a, b, line in SLOTS]
+CUT_SRC = [0, 4.555, 11.88, 18.605, 26.955, 32.915, 37.795, 42.19]   # midpoints of pauses between groups
+TARGET = [0.3, 5.2, 13.2, 20.2, 28.7, 35.7, 40.5]
+R.VO = [(s0 + TARGET[k] - grp[0][0], s1 - s0, line) for k, grp in enumerate(VO_SRC) for (s0, s1, line) in grp]
 R.CHUNKS = R.build_chunks()
-CUTS = (5, 15, 24, 35, 45, 53)
+
+DUR = 47.0
+# new (voice-paced) time -> scene clock: (new_start, new_end, old_start), 1x speed
+TIMEMAP = [(0, 5, 0), (5, 7.6, 5), (7.6, 13, 8.9), (13, 20, 15.8), (20, 28.5, 24), (28.5, 35.5, 35.5),
+           (35.5, 40.3, 46.7), (40.3, 47.01, 53.3)]
+CUTS = (5, 13, 20, 28.5, 35.5, 40.3)
+
+
+def scene_time(t):
+    for n0, n1, o0 in TIMEMAP:
+        if n0 <= t < n1:
+            return o0 + (t - n0)
+    return TIMEMAP[-1][2] + (t - TIMEMAP[-1][0])
+
+
+def to_new(ot):
+    for n0, n1, o0 in TIMEMAP:
+        if o0 <= ot < o0 + (n1 - n0):
+            return n0 + (ot - o0)
+    return None
+
 
 # SFX events (time, kind) — collected statically for the audio mixer
-SFX = [(0.15, "boom"), (0.9, "pop")] + [(c - 0.15, "whoosh") for c in CUTS]
+SFX = [(0.15, "boom"), (0.9, "pop")]
 
 PINK = (255, 150, 215)
 PINK_D = (190, 60, 150)
@@ -386,7 +409,7 @@ SCENES = [(0, scene_hook), (5, scene_schematic), (15, scene_neurons), (24, scene
           (45, scene_coconut), (53, scene_outro)]
 
 
-def camera(img, t):
+def camera(img, t, ot):
     z, dx, dy = 1.0, 0.0, 0.0
     for c in (0,) + CUTS:
         u = prog(t, c, c + 0.35)
@@ -394,8 +417,8 @@ def camera(img, t):
             z = max(z, lerp(1.12, 1.0, ease_out(u)))
     # impacts
     for ts, amt in ((0.2, 22), (40.6, 18)):
-        if ts <= t < ts + 0.5:
-            k = (1 - (t - ts) / 0.5) * amt
+        if ts <= ot < ts + 0.5:
+            k = (1 - (ot - ts) / 0.5) * amt
             dx += k * math.sin(t * 90)
             dy += k * math.cos(t * 70)
     if z == 1.0 and dx == 0 and dy == 0:
@@ -410,12 +433,13 @@ def render_frame(i):
     if R.BG is None:
         R.BG = R.make_bg()
     t = i / FPS
+    ot = scene_time(t)
     img = R.BG.copy()
     d = ImageDraw.Draw(img, "RGBA")
-    draw_ambient(d, t, rays=t >= 5)
-    fn = [f for s, f in SCENES if t >= s][-1]
-    fn(img, d, t)
-    img = camera(img, t)
+    draw_ambient(d, t, rays=ot >= 5)
+    fn = [f for s, f in SCENES if ot >= s][-1]
+    fn(img, d, ot)
+    img = camera(img, t, ot)
     d = ImageDraw.Draw(img, "RGBA")
     R.draw_subs(d, t)
     # progress bar + watermark
@@ -441,6 +465,8 @@ def events():
     ev += [(24.8, "pop"), (26.4, "pop"), (28.0, "pop"), (29.6, "pop"), (30.8, "pop")]
     ev += [(36.0 + k * 0.5, "tick") for k in range(9)]
     ev += [(40.6, "boom"), (40.6, "pop"), (49.2, "boom"), (49.5, "pop"), (56.5, "pop"), (56.7, "ding")]
+    ev = [(to_new(tm), k) for tm, k in ev]
+    ev = [(tm, k) for tm, k in ev if tm is not None] + [(c - 0.15, "whoosh") for c in CUTS]
     return sorted(ev)
 
 
