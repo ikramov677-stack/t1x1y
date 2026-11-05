@@ -5,3 +5,5 @@ build/audio/t.mp3
 __pycache__/
 build/asr/sherpa-onnx-*/
 build/asr/*.wav
+build/video2_noaudio.mp4
+build/render2.log
