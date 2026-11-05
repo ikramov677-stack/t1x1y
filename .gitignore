@@ -7,3 +7,4 @@ build/asr/sherpa-onnx-*/
 build/asr/*.wav
 build/video2_noaudio.mp4
 build/render2.log
+build/video3_noaudio.mp4
