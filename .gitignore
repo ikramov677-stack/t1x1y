@@ -3,3 +3,6 @@ build/audio/*.wav
 build/render.log
 build/audio/t.mp3
 __pycache__/
+build/asr/sherpa-onnx-*/
+build/asr/*.wav
+build/audio/el.mp3
