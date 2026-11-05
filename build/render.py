@@ -11,7 +11,7 @@ from multiprocessing import Pool
 
 from PIL import Image, ImageDraw, ImageFont
 
-W, H, FPS, DUR = 1080, 1920, 30, 60.0
+W, H, FPS, DUR = 1080, 1920, 30, 47.0
 FONT_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 _fonts = {}
 
@@ -265,15 +265,33 @@ def octo_layer(t, alpha, **kw):
 
 
 # ---------------------------------------------------------------- subtitles
-VO = [
-    (0.10, 4.78, "Знаете, сколько сердец у осьминога? Не одно… а целых три!"),
-    (5.10, 5.55, "Два сердца качают кровь через жабры, чтобы насытить её кислородом."),
-    (15.10, 4.28, "А третье, главное, разгоняет кровь по всему телу."),
-    (22.10, 9.73, "Но вот что интересно: когда осьминог плывёт, главное сердце останавливается! Поэтому плавать он не любит и чаще ползает по дну."),
-    (32.10, 11.29, "А ещё кровь у осьминога голубая. У нас кислород переносит железо, а у него — медь. Это помогает выживать в холодной воде, где кислорода мало."),
-    (45.10, 5.92, "Три сердца, голубая кровь… и девять мозгов! Но об этом — в следующем видео."),
-    (53.10, 5.69, "Подписывайтесь на «Факты за минуту», чтобы узнавать удивительное каждый день!"),
+# ElevenLabs voiceover (build/audio/el.mp3): speech chunks in source time, grouped per scene.
+# Each group k is shifted so that its first word starts at TARGET[k] in the video.
+VO_SRC = [
+    [(0.00, 1.93, "Знаете, сколько сердец у осьминога?"), (2.37, 3.16, "Не одно…"), (3.42, 4.46, "а целых три!")],
+    [(4.99, 8.57, "Два сердца качают кровь через жабры, чтобы насытить её кислородом.")],
+    [(9.04, 10.44, "А третье, главное,"), (10.71, 12.45, "разгоняет кровь по всему телу.")],
+    [(12.99, 13.88, "Но вот что интересно:"), (14.23, 17.55, "когда осьминог плывёт, главное сердце останавливается!"),
+     (17.98, 20.72, "Поэтому плавать он не любит и чаще ползает по дну.")],
+    [(21.31, 23.48, "А ещё кровь у осьминога голубая."), (23.99, 26.95, "У нас кислород переносит железо, а у него — медь."),
+     (27.48, 30.40, "Это помогает выживать в холодной воде, где кислорода мало.")],
+    [(31.08, 32.89, "Три сердца, голубая кровь…"), (33.31, 34.46, "и девять мозгов!"), (34.94, 36.60, "Но об этом — в следующем видео.")],
+    [(36.91, 41.09, "Подписывайтесь на «Факты за минуту», чтобы узнавать удивительное каждый день!")],
 ]
+TARGET = [0.3, 5.2, 10.2, 15.2, 24.2, 34.7, 41.2]
+VO = [(s0 + TARGET[k] - grp[0][0], s1 - s0, line) for k, grp in enumerate(VO_SRC) for (s0, s1, line) in grp]
+
+# New (voice-paced) timeline -> original scene clock. Each entry: (new_start, new_end, old_start), 1x speed.
+TIMEMAP = [(0, 5, 0), (5, 10, 5), (10, 15, 15), (15, 24, 22), (24, 26.8, 32), (26.8, 30.3, 35.4),
+           (30.3, 34.5, 39.6), (34.5, 41, 45.5), (41, 47.01, 53)]
+CUTS = (5, 10, 15, 24, 34.5, 41)
+
+
+def scene_time(t):
+    for n0, n1, o0 in TIMEMAP:
+        if n0 <= t < n1:
+            return o0 + (t - n0)
+    return TIMEMAP[-1][2] + (t - TIMEMAP[-1][0])
 
 
 def build_chunks():
@@ -671,29 +689,30 @@ def render_frame(i):
     if BG is None:
         BG = make_bg()
     t = i / FPS
+    ot = scene_time(t)
     img = BG.copy()
     d = ImageDraw.Draw(img, "RGBA")
-    draw_ambient(d, t, rays=not (39.6 <= t < 45))
-    if t < 5:
-        scene_hook(img, d, t)
-    elif t < 15:
-        scene_schematic(img, d, t, 2)
-    elif t < 22:
-        scene_schematic(img, d, t, 3)
-    elif t < 32:
-        scene_swim(img, d, t)
-    elif t < 45:
-        scene_blood(img, d, t)
-    elif t < 53:
-        scene_jar(img, d, t)
+    draw_ambient(d, t, rays=not (39.6 <= ot < 45))
+    if ot < 5:
+        scene_hook(img, d, ot)
+    elif ot < 15:
+        scene_schematic(img, d, ot, 2)
+    elif ot < 22:
+        scene_schematic(img, d, ot, 3)
+    elif ot < 32:
+        scene_swim(img, d, ot)
+    elif ot < 45:
+        scene_blood(img, d, ot)
+    elif ot < 53:
+        scene_jar(img, d, ot)
     else:
-        scene_outro(img, d, t)
+        scene_outro(img, d, ot)
     draw_subs(d, t)
     # channel watermark
     text(d, "Факты за минуту", W - 200, 80, 34, fill=(255, 255, 255), alpha=150, sw=2)
     # transitions: quick flash-to-dark around scene cuts
     fade = 0.0
-    for c in (5, 15, 22, 32, 45, 53):
+    for c in CUTS:
         fade = max(fade, 1 - abs(t - c) / 0.18)
     fade = max(fade, 1 - t / 0.25, 1 - (DUR - t) / 0.4)
     if fade > 0:

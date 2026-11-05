@@ -1,5 +1,5 @@
 import numpy as np, wave
-sr=44100; dur=60.0; n=int(sr*dur); t=np.arange(n)/sr
+sr=44100; dur=47.0; n=int(sr*dur); t=np.arange(n)/sr
 out=np.zeros(n)
 def note(f): return 440*2**((f-69)/12)
 chords=[[57,60,64],[53,57,60],[48,52,55],[55,59,62]]  # Am F C G
