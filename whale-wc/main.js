@@ -422,8 +422,8 @@ const SCN = {
     // mist erases the sheet from the bottom
     const m = seg(lt, D - 2.6, D - .6);
     if (m > 0) { const y0 = H - m * (H + 300); const g = ctx.createLinearGradient(0, y0, 0, y0 + 300); g.addColorStop(0, rgba(PAPER, 0)); g.addColorStop(1, rgba(PAPER, 1)); ctx.fillStyle = g; ctx.fillRect(0, y0, W, 300); ctx.fillStyle = PAPER; ctx.fillRect(0, y0 + 300, W, H); }
-    title('Факты за минуту', 1080, seg(lt, .8, 1.6), 92);
-    hand('подписывайтесь', 540, 1190, seg(lt, 1.4, 2.4), { size: 64, align: 'center', col: VERM });
+    title('Факты за минуту', 300, seg(lt, .8, 1.6), 92);
+    hand('подписывайтесь', 540, 410, seg(lt, 1.4, 2.4), { size: 64, align: 'center', col: VERM });
     mistBottom(.92, 1560);
   },
 };
