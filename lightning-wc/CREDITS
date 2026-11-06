@@ -1,0 +1,14 @@
+«Молния горячее Солнца» — credits for third-party material
+
+Stroke engine: engine.js from the Lemo-Opuscar library's "Watercolor Brush" demo —
+https://github.com/lemomo-ai/lemo-opuscar — MIT License. paper.py adapted from the same demo.
+Render/mux tools: Lemo-Opuscar core/ (MIT), run from the library, not copied.
+
+Fonts (SIL Open Font License 1.1, via Google Fonts): Cormorant Garamond (Christian Thalmann),
+Caveat (Impallari Type), IBM Plex Mono (IBM).
+
+Music and sound effects: synthesized in numpy for this film (mix.py); no samples.
+Voice: to be added — ElevenLabs recording supplied by the channel owner.
+All pictures are painted in code; no images, footage or photos.
+
+Facts: NOAA/NWS (lightning temperature, thunder, the 3-second rule), NASA (global flash rate).
