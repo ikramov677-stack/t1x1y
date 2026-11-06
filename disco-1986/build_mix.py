@@ -110,10 +110,12 @@ def main():
     if not os.path.exists(loop):
         sys.exit("render the loop first: python3 render_loop.py")
     video = os.path.join(OUT, "disco-1986.mp4")
-    run(["ffmpeg", "-y", "-loglevel", "error", "-stream_loop", "-1", "-i", loop, "-i", mix,
+    # exact repeat count + -t: with stream copy, "-stream_loop -1 -shortest" never stops
+    loops = int(total // duration(loop)) + 1
+    run(["ffmpeg", "-y", "-loglevel", "error", "-stream_loop", str(loops), "-i", loop, "-i", mix,
          "-map", "0:v", "-map", "1:a", "-c:v", "copy",
          "-af", f"afade=t=in:d=1.5,afade=t=out:st={max(0, total - 4):.2f}:d=4",
-         "-c:a", "aac", "-b:a", "320k", "-shortest", "-movflags", "+faststart", video])
+         "-c:a", "aac", "-b:a", "320k", "-t", f"{total:.3f}", "-movflags", "+faststart", video])
 
     # description
     lines = [CFG["title"], "", "Описание:",

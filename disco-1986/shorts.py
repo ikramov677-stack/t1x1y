@@ -37,11 +37,20 @@ def loudest_window(wav, length=LEN):
     n = int(length * 2)
     if len(e) <= n:
         return 0.0
-    c = np.convolve(e, np.ones(n), "valid")
+    # 1) the loudest 10-second stretch inside 20–75 % of the song = the chorus body
+    k = 20
+    c = np.convolve(e, np.ones(k), "valid")
     lo, hi = int(len(e) * 0.20), int(len(e) * 0.75)
     hi = max(lo + 1, min(hi, len(c)))
-    best = lo + int(np.argmax(c[lo:hi]))
-    return best / 2.0
+    peak = lo + int(np.argmax(c[lo:hi]))
+    # 2) walk back to where it starts: the biggest loudness jump in the 12 s before it
+    sm = np.convolve(e, np.ones(4) / 4, "same")
+    a, b = max(4, peak - 24), min(len(sm) - 4, peak + 4)
+    if b > a:
+        jump = sm[a + 2:b + 2] - sm[a - 2:b - 2]
+        peak = a + int(np.argmax(jump))
+    start = max(0.0, peak / 2.0 - 0.5)
+    return min(start, max(0.0, len(x) / sr - length))
 
 
 def caption_png(title, n, path):
