@@ -1,0 +1,17 @@
+{
+  "title": "Дискотека 1986 🎶 Кассета, которой не было | Ретро синт-поп",
+  "crossfade_s": 4,
+  "lufs": -14,
+  "tracks": [
+    {"n": 1,  "title": "Огни ночного города", "style": "1980s synth-pop, russian female vocals, dreamy, drum machine, nostalgic", "short_start": null},
+    {"n": 2,  "title": "Последний троллейбус", "style": "soviet italo disco, male vocals, upbeat, analog synths"},
+    {"n": 3,  "title": "Летний вечер 86", "style": "retro disco, warm bass, female vocals, summer mood"},
+    {"n": 4,  "title": "Магнитофон", "style": "80s new wave, male vocals, catchy chorus, reverb"},
+    {"n": 5,  "title": "Танцуй со мной", "style": "italo disco, energetic, female vocals, vocoder", "short_start": null},
+    {"n": 6,  "title": "Белые ночи", "style": "slow synth ballad, russian male vocals, melancholic"},
+    {"n": 7,  "title": "Неоновый дождь", "style": "synthwave, dreamy pads, female vocals"},
+    {"n": 8,  "title": "Дворовая дискотека", "style": "soviet disco, upbeat, brass synths, group vocals", "short_start": null},
+    {"n": 9,  "title": "Письмо из прошлого", "style": "80s ballad, soft female vocals, piano and synth"},
+    {"n": 10, "title": "До свидания, лето", "style": "retro synth-pop, nostalgic, male and female duet"}
+  ]
+}

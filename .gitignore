@@ -14,3 +14,10 @@ honey-80s/out/
 honey-80s/stills/
 honey-80s/events.json
 honey-80s/voice.wav
+disco-1986/tracks/
+disco-1986/out/norm/
+disco-1986/out/mix.wav
+disco-1986/out/disco-1986.mp4
+disco-1986/out/short_*.mp4
+disco-1986/out/test_*.png
+disco-1986/out/render.log
