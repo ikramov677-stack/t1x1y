@@ -10,3 +10,7 @@ build/render2.log
 build/video3_noaudio.mp4
 build/render3.log
 build/video4_noaudio.mp4
+honey-80s/out/
+honey-80s/stills/
+honey-80s/honey-80s.mp4
+honey-80s/events.json

@@ -1,0 +1,18 @@
+«Мёд почти не портится» — credits for third-party material
+
+Engine code: cel.js, pal.js, head80.js, fx.js, post.js adapted from the Lemo-Opuscar library's
+"80s Cel Anime" demo — https://github.com/lemomo-ai/lemo-opuscar — MIT License.
+Render/mux tools: Lemo-Opuscar core/ (MIT), run from the library, not copied.
+
+Fonts (SIL Open Font License 1.1, via Google Fonts):
+- PT Sans Narrow Bold — ParaType
+- Russo One — Jovanny Lemonad
+- Dela Gothic One (subset: ハチミツ) — artakana
+
+Music and sound effects: synthesized in numpy for this film (mix.py); no samples.
+Voice: to be added — ElevenLabs recording supplied by the channel owner.
+All pictures are drawn in code; no images, footage or photos.
+
+Facts: honey in ancient Egyptian tombs, low water content, acidity (pH ≈ 3.9), glucose oxidase —
+Smithsonian Magazine, "The Science Behind Honey's Eternal Shelf Life" (2013);
+1/12 teaspoon per worker bee — commonly cited by beekeeping associations.
