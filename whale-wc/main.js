@@ -17,7 +17,8 @@ const LINES = [
   { id: 'song', text: 'А песни синего кита слышны за сотни километров.' },
   { id: 'sub', text: 'Подписывайтесь на «Факты за минуту»!' },
 ];
-const VOICE = null;               // [[start, end], …] in the voice file once it arrives
+const VOICE = [[0.0, 4.10], [4.49, 6.38], [6.85, 10.49], [10.90, 13.00], [13.47, 17.33], [17.72, 20.41], [20.90, 23.39], [23.79, 27.46], [27.86, 32.41], [32.82, 36.10], [36.67, 38.68]];
+const MYTH_AT = 2.98;   // «но это миф» inside the myth line               // [[start, end], …] in the voice file once it arrives
 const VOICE_OFFSET = 0.4;
 const BPM = 72, BEAT = 60 / BPM;
 const snapB = t => Math.round(t / BEAT * 2) * BEAT / 2;
@@ -375,7 +376,7 @@ const SCN = {
     drawObj(O.swim, 110, 1000, seg(lt, .6, 1.2));
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     title('проплыть по сосудам?', 300, seg(lt, .1, .8), 62);
-    const ct = D * .62;
+    const ct = VO[7].t + MYTH_AT - SC[7].t0 - .1;
     drawS(ctx, O.cross[0], seg(lt, ct, ct + .25)); drawS(ctx, O.cross[1], seg(lt, ct + .2, ct + .45));
     mono('МИФ', 540, 1420, seg(lt, ct + .4, ct + .7), { size: 64, col: VERM });
     mistBottom(.6);
@@ -473,7 +474,7 @@ function events() {
   for (const sname of ['dive', 'rise']) { const s = S[sname], per = sname === 'dive' ? 3.6 : .55, D = s.t1 - s.t0; for (let x = 0; x < 4.0; x += per) { const tt = s.t0 + .3 + x / 4.0 * (D - .5); if (tt < s.t1) add('beat', tt, { v: sname === 'dive' ? 1 : .7 }); } }
   add('deep', S.dive.t0, { d: S.dive.t1 - S.dive.t0 });
   add('brush', S.tongue.t0 + .1, { d: 1.8 }); add('creak', S.tongue.t0 + 1.2);
-  add('brush', S.myth.t0, { d: 1.2 }); add('stamp', S.myth.t0 + (S.myth.t1 - S.myth.t0) * .62);
+  add('brush', S.myth.t0, { d: 1.2 }); add('stamp', VO[7].t + MYTH_AT - .1);
   add('brush', S.artery.t0 + .1, { d: 1.5 }); add('pencil', S.artery.t0 + 1.6, { d: .7 });
   add('song', S.song.t0 + .2, { d: S.song.t1 - S.song.t0 + 1 });
   add('waves', S.sub.t0, { d: S.sub.t1 - S.sub.t0 }); add('mist', S.sub.t1 - 2.6, { d: 2 });
