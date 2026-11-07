@@ -4,7 +4,7 @@ set -e
 LIB=${LIB:-/root/lemo-opuscar}
 HERE=$(cd "$(dirname "$0")" && pwd)
 cd "$LIB"
-[ -f "$HERE/events.json" ] || node core/render/events.mjs "$HERE" --size 1080x1920
+node core/render/events.mjs "$HERE" --size 1080x1920
 node "$HERE/chunks.mjs" "$HERE" "$HERE/out/chunks" --fps 30 --workers 4 --size 1080x1920 --chunk 60
 (cd "$HERE/out/chunks" && ffmpeg -y -loglevel error -f concat -safe 0 -i list.txt -c copy ../video.mp4)
 "$LIB/.venv/bin/python" "$HERE/mix.py"
