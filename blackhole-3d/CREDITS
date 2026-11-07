@@ -1,0 +1,9 @@
+«Что будет, если упасть в чёрную дыру» — credits for third-party material
+
+3D engine: three.js r170 (MIT) — https://threejs.org, served from the Lemo-Opuscar library's node_modules.
+Render/mux tools and post-processing: Lemo-Opuscar core/ (MIT) — https://github.com/lemomo-ai/lemo-opuscar.
+Fonts: Oswald, Inter (SIL Open Font License 1.1, via Google Fonts).
+Black hole: ray-marched photon geodesics around a Schwarzschild hole (r'' = −1.5·h²·r/|r|⁵), written for this film.
+Music and sound effects: synthesized in numpy for this film (mix.py); no samples.
+Voice: to be added — ElevenLabs recording supplied by the channel owner.
+Facts: Sgr A* mass ≈ 4×10⁶ M☉ (Event Horizon Telescope / GRAVITY, 2022); distance ≈ 26 000 ly.
