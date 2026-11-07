@@ -12,7 +12,7 @@ const queue = [...Array(N).keys()].filter(i => !fs.existsSync(path.join(cdir, na
 console.log('frames', TOTAL, 'chunks', N, 'todo', queue.length); const t0 = Date.now();
 await Promise.all([...Array(WK)].map(async (_, w) => {
   if (!queue.length) return;
-  const { browser, page } = await openDemo(dir, { w: W, h: H, q: '' });
+  const { browser, page } = await openDemo(dir, { w: W, h: H, q: '' }); page.setDefaultTimeout(0);
   while (queue.length) {
     const i = queue.shift(), a = i * CH, b = Math.min(TOTAL, a + CH), tmp = `tmp_${i}.mp4`;
     const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-',
