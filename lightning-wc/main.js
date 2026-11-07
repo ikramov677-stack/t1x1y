@@ -17,7 +17,7 @@ const LINES = [
   { id: 'sand', text: 'Когда она попадает в песок, получается стеклянная трубка.' },
   { id: 'sub', text: 'Подписывайтесь на «Факты за минуту»!' },
 ];
-const VOICE = null;               // [[start, end], …] in the voice file once it arrives
+const VOICE = [[0.0, 2.54], [3.01, 6.35], [6.93, 10.67], [11.14, 13.09], [13.53, 16.68], [17.17, 20.81], [21.25, 23.55], [24.05, 27.01], [27.41, 30.05], [30.43, 33.76], [34.27, 36.27]];               // [[start, end], …] in the voice file once it arrives
 const VOICE_OFFSET = 0.4;
 const BPM = 72, BEAT = 60 / BPM;
 const snapB = t => Math.round(t / BEAT * 2) * BEAT / 2;
