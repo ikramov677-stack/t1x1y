@@ -1,0 +1,8 @@
+«Город огня и город дождя» — credits for third-party material
+
+3D engine: three.js r170 (MIT) — https://threejs.org, served from the Lemo-Opuscar library's node_modules.
+Render/mux tools and post-processing: Lemo-Opuscar core/ (MIT) — https://github.com/lemomo-ai/lemo-opuscar.
+Fonts: Cormorant Garamond, Inter (SIL Open Font License 1.1, via Google Fonts).
+Music and sound effects: synthesized in numpy for this film (mix.py); no samples.
+Characters (Lumi, Rio) designed by the channel owner; all 3D models are procedural and made for this film.
+Voice: to be added — ElevenLabs recording supplied by the channel owner.
