@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Карта Земли</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root { --bg: rgba(18,22,30,.88); --fg: #eef2f7; --muted: #9aa6b8; --accent: #4da3ff; }
+  html, body { margin: 0; height: 100%; background: #0b0e14; font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  #map { position: absolute; inset: 0; }
+  .panel { position: absolute; z-index: 1000; background: var(--bg); color: var(--fg);
+           border-radius: 10px; box-shadow: 0 4px 18px rgba(0,0,0,.35); backdrop-filter: blur(6px); }
+  #search { top: 12px; left: 56px; right: 64px; max-width: 420px; display: flex; }
+  #search input { flex: 1; min-width: 0; padding: 10px 12px; border: 0; background: transparent; color: var(--fg); font-size: 15px; outline: none; }
+  #search button { border: 0; background: var(--accent); color: #fff; padding: 0 14px; border-radius: 0 10px 10px 0; cursor: pointer; font-size: 15px; }
+  #results { position: absolute; top: 100%; left: 0; right: 0; margin-top: 6px; background: var(--bg); border-radius: 10px; overflow: hidden; display: none; }
+  #results div { padding: 8px 12px; cursor: pointer; border-top: 1px solid rgba(255,255,255,.06); }
+  #results div:hover { background: rgba(77,163,255,.2); }
+  #coords { bottom: 26px; left: 12px; padding: 6px 10px; font-variant-numeric: tabular-nums; font-size: 13px; }
+  #tools { top: 80px; left: 12px; display: flex; flex-direction: column; overflow: hidden; }
+  #tools button { width: 34px; height: 34px; border: 0; background: transparent; color: var(--fg); font-size: 17px; cursor: pointer; }
+  #tools button:hover, #tools button.on { background: rgba(77,163,255,.3); }
+  .leaflet-control-layers { background: var(--bg) !important; color: var(--fg); border: 0 !important; border-radius: 10px !important; }
+  .leaflet-control-layers-toggle { filter: invert(1); }
+  .leaflet-container { background: #0b0e14; }
+  @media (max-width: 520px) { #search { left: 12px; right: 56px; } #tools { top: 64px; } }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div id="search" class="panel">
+  <input id="q" type="search" placeholder="Поиск: город, адрес, страна…" autocomplete="off">
+  <button id="go" title="Найти">🔍</button>
+  <div id="results"></div>
+</div>
+
+<div id="tools" class="panel">
+  <button id="locate" title="Где я?">📍</button>
+  <button id="night" title="День / ночь">🌗</button>
+  <button id="world" title="Вся Земля">🌍</button>
+</div>
+
+<div id="coords" class="panel">—</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const map = L.map('map', { zoomControl: false, worldCopyJump: true, minZoom: 2 }).setView([30, 20], 3);
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+L.control.scale({ metric: true, imperial: false, position: 'bottomright' }).addTo(map);
+
+// --- Реальные подложки ---------------------------------------------------
+const esri = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
+const satellite = L.tileLayer(esri + 'World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  maxZoom: 19, attribution: 'Снимки © Esri, Maxar, Earthstar Geographics' });
+const labels = L.tileLayer(esri + 'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+  maxZoom: 19, attribution: 'Подписи © Esri' });
+const hybrid = L.layerGroup([satellite, labels]);
+const streets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19, attribution: '© участники OpenStreetMap' });
+const topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+  maxZoom: 17, attribution: '© OpenStreetMap, SRTM | стиль © OpenTopoMap' });
+const dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  maxZoom: 20, attribution: '© OpenStreetMap © CARTO' });
+
+hybrid.addTo(map);
+L.control.layers({
+  'Спутник + подписи': hybrid,
+  'Спутник': satellite,
+  'Улицы (OSM)': streets,
+  'Рельеф': topo,
+  'Тёмная': dark
+}, null, { position: 'topright' }).addTo(map);
+
+// --- Координаты ----------------------------------------------------------
+const coordsEl = document.getElementById('coords');
+const fmt = (v, p, n) => Math.abs(v).toFixed(4) + '° ' + (v >= 0 ? p : n);
+const wrapLng = lng => ((lng + 540) % 360) - 180;
+map.on('mousemove', e => {
+  coordsEl.textContent = fmt(e.latlng.lat, 'с.ш.', 'ю.ш.') + ', ' + fmt(wrapLng(e.latlng.lng), 'в.д.', 'з.д.');
+});
+map.on('click', e => {
+  const lat = e.latlng.lat.toFixed(5), lng = wrapLng(e.latlng.lng).toFixed(5);
+  L.popup().setLatLng(e.latlng).setContent(`<b>${lat}, ${lng}</b><br><small>Зум ${map.getZoom()}</small>`).openOn(map);
+});
+
+// --- Поиск (Nominatim / OpenStreetMap) -----------------------------------
+const q = document.getElementById('q'), results = document.getElementById('results');
+let marker;
+async function search() {
+  const text = q.value.trim();
+  if (!text) return;
+  results.style.display = 'block';
+  results.innerHTML = '<div>Ищу…</div>';
+  try {
+    const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=6&accept-language=ru&q=' + encodeURIComponent(text));
+    const data = await r.json();
+    if (!data.length) { results.innerHTML = '<div>Ничего не найдено</div>'; return; }
+    results.innerHTML = '';
+    data.forEach(p => {
+      const d = document.createElement('div');
+      d.textContent = p.display_name;
+      d.onclick = () => goTo(p);
+      results.appendChild(d);
+    });
+    if (data.length === 1) goTo(data[0]);
+  } catch { results.innerHTML = '<div>Ошибка сети</div>'; }
+}
+function goTo(p) {
+  results.style.display = 'none';
+  const b = p.boundingbox.map(Number);
+  map.flyToBounds([[b[0], b[2]], [b[1], b[3]]], { maxZoom: 17, duration: 1.5 });
+  if (marker) marker.remove();
+  marker = L.marker([+p.lat, +p.lon]).addTo(map).bindPopup(p.display_name).openPopup();
+}
+document.getElementById('go').onclick = search;
+q.addEventListener('keydown', e => { if (e.key === 'Enter') search(); if (e.key === 'Escape') results.style.display = 'none'; });
+
+// --- Моё местоположение --------------------------------------------------
+document.getElementById('locate').onclick = () => map.locate({ setView: true, maxZoom: 15 });
+map.on('locationfound', e => {
+  L.circle(e.latlng, { radius: e.accuracy, color: '#4da3ff', weight: 1 }).addTo(map);
+  L.circleMarker(e.latlng, { radius: 7, color: '#fff', fillColor: '#4da3ff', fillOpacity: 1 }).addTo(map).bindPopup('Вы здесь').openPopup();
+});
+map.on('locationerror', e => alert('Не удалось определить местоположение: ' + e.message));
+document.getElementById('world').onclick = () => map.flyTo([30, 20], 3);
+
+// --- Линия дня и ночи (реальное положение Солнца сейчас) ------------------
+function nightPolygon(date) {
+  const rad = Math.PI / 180;
+  const jd = date.getTime() / 86400000 + 2440587.5, n = jd - 2451545.0;
+  const L0 = (280.460 + 0.9856474 * n) % 360, g = (357.528 + 0.9856003 * n) % 360;
+  const lambda = L0 + 1.915 * Math.sin(g * rad) + 0.020 * Math.sin(2 * g * rad);
+  const eps = 23.439 - 0.0000004 * n;
+  const decl = Math.asin(Math.sin(eps * rad) * Math.sin(lambda * rad)) / rad;
+  let ra = Math.atan2(Math.cos(eps * rad) * Math.sin(lambda * rad), Math.cos(lambda * rad)) / rad;
+  const gmst = (18.697374558 + 24.06570982441908 * n) % 24 * 15;
+  const sunLng = ra - gmst;                         // долгота подсолнечной точки
+  const pts = [];
+  for (let lng = -540; lng <= 540; lng += 2) {
+    const lat = Math.atan(-Math.cos((lng - sunLng) * rad) / Math.tan(decl * rad)) / rad;
+    pts.push([lat, lng]);
+  }
+  const pole = decl > 0 ? -90 : 90;                 // ночной полюс
+  return [[pole, -540], ...pts, [pole, 540]];
+}
+const night = L.polygon(nightPolygon(new Date()), {
+  stroke: false, fillColor: '#000814', fillOpacity: 0.45, interactive: false });
+setInterval(() => night.setLatLngs(nightPolygon(new Date())), 60000);
+const nightBtn = document.getElementById('night');
+nightBtn.onclick = () => {
+  if (map.hasLayer(night)) { night.remove(); nightBtn.classList.remove('on'); }
+  else { night.addTo(map); nightBtn.classList.add('on'); }
+};
+</script>
+</body>
+</html>

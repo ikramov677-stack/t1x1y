@@ -1,0 +1,11 @@
+{
+  "name": "earth-map",
+  "private": true,
+  "description": "Builds index.html: a self-contained 3D Earth with NASA Blue Marble imagery and Natural Earth borders",
+  "scripts": { "build": "node build.js" },
+  "devDependencies": {
+    "i18n-iso-countries": "7.14.0",
+    "three-globe": "2.31.0",
+    "world-atlas": "2.0.2"
+  }
+}

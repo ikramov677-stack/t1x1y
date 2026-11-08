@@ -45,3 +45,5 @@ blackhole-3d/out/
 blackhole-3d/stills/
 blackhole-3d/events.json
 blackhole-3d/voice.wav
+earth-map/node_modules/
+earth-map/package-lock.json
