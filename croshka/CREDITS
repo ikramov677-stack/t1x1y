@@ -1,0 +1,8 @@
+«Операция "Крошка"», серия 1 — credits
+
+Story / script: the channel owner.
+Drawing and animation: plain 2D canvas — every character, room and prop drawn in code for this film (main.js).
+Render: render.mjs (Playwright + Chromium screenshots → ffmpeg), master.py (two-pass loudnorm, −14 LUFS).
+Fonts: Oswald, Inter (SIL Open Font License 1.1, via Google Fonts).
+Music and sound effects: synthesized in numpy for this film (mix.py); no samples.
+Voice: not yet recorded — this draft shows the narration as subtitles.
