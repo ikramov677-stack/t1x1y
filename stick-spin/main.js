@@ -17,7 +17,14 @@ const LINES = [
   ['stars', 'Но заметить вращение можно: ночью звёзды плывут по небу — это мы поворачиваемся.'],
   ['sub', 'Пишите свои вопросы в комментариях и подписывайтесь на «Факты за минуту»!'],
 ].map(([id, text]) => ({ id, text }));
-const VOICE = null;
+const VOICE = [[0.07,4.75],[5.23,13.44],[13.87,19.40],[19.76,23.27],[23.70,29.38],[29.79,34.48],[34.84,40.83],[41.26,45.26]];
+// spoken phrases (voice time) — subtitles follow these; WORDS = when key words are said
+const PH = [[0.07,2.17,'Стик думает, что стоит на месте.'],[2.44,4.75,'Но он мчится быстрее самолёта!'],[5.23,6.88,'Подписчица Вера спросила:'],[7.20,9.35,'почему мы не чувствуем вращение Земли?'],
+  [9.68,13.44,'Ведь на экваторе это 1 670 км/ч!'],[13.87,14.96,'Представьте самолёт:'],[15.26,19.40,'он летит 900 км/ч, а вода в стакане не проливается.'],[19.76,23.27,'Но стоит резко затормозить — и вы это сразу почувствуете.'],
+  [23.70,26.68,'Тело чувствует не скорость, а её изменение.'],[26.99,29.38,'А Земля крутится плавно и ровно.'],[29.79,33.00,'Вместе с нами движутся воздух, дома и деревья.'],[33.28,34.48,'Всё одновременно.'],
+  [34.84,36.63,'Но заметить вращение можно:'],[37.00,38.95,'ночью звёзды плывут по небу —'],[39.27,40.83,'это мы поворачиваемся.'],[41.26,45.26,'Пишите свои вопросы в комментариях и подписывайтесь на «Факты за минуту»!']];
+const WORDS = { 'tea|Но он': 2.44, 'tea|быстрее': 3.5, 'vera|Ведь': 9.68, 'vera|тысяча': 10.8, 'plane|девятьсот': 15.75, 'plane|вода': 17.3, 'plane|не проливается': 18.4, 'brake|резко': 20.45,
+  'feel|Тело': 23.7, 'feel|изменение': 25.6, 'feel|А Земля': 26.99, 'together|Всё': 33.28, 'stars|ночью': 37.0, 'stars|это мы': 39.27, 'sub|вопросы': 42.0, 'sub|подписывайтесь': 43.3 };
 const VOICE_OFFSET = 0.4, BPM = 104, BEAT = 60 / BPM;
 const snapB = t => Math.round(t / (BEAT / 2)) * BEAT / 2;
 const TL = (() => {
@@ -30,7 +37,7 @@ const { SC, VO } = TL;
 const sceneIdx = t => { let k = 0; SC.forEach((s, i) => { if (t >= s.t0) k = i; }); return k; };
 const SCN = Object.fromEntries(SC.map(s => [s.name, s])), VON = Object.fromEntries(VO.map(v => [v.id, v]));
 // scene-local time when a word of that scene's line is (approximately) spoken
-const word = (id, w) => { const v = VON[id], i = Math.max(0, v.text.indexOf(w)); return v.t + v.d * i / v.text.length - SCN[id].t0; };
+const word = (id, w) => { if (VOICE && WORDS[id + '|' + w] != null) return WORDS[id + '|' + w] + VOICE_OFFSET - SCN[id].t0; const v = VON[id], i = Math.max(0, v.text.indexOf(w)); return v.t + v.d * i / v.text.length - SCN[id].t0; };
 
 const cv = document.getElementById('ov'), g = cv.getContext('2d');
 
@@ -195,11 +202,11 @@ const SH = {
     g.save(); g.translate(cx, cy); g.scale(gp, gp); g.translate(-cx, -cy);
     arrowArc(cx, cy, r + 70, Math.PI * 1.15, Math.PI * 1.15 + (Math.PI * .7) * eio(seg(lt, .8, 1.8)), 10, '#2b6cff');
     globe(cx, cy, r, rot, { equator: true });
-    g.restore();
     const ep = sph(cx, cy, r, 0, 0, 0, .32), s = .85, fy = ep[1] + 2;
     const hold = eo(seg(lt, tn - .3, tn + .2));
     const P = stick(ep[0], fy - 118 * s, s, { face: lt > tq ? 'wow' : 'calm', lean: -.06, armL: hold ? { to: [ep[0] - 60, fy - 230 * s - 70 * hold], bend: -1 } : [-.5, .2], armR: hold ? { to: [ep[0] + 60, fy - 230 * s - 70 * hold], bend: 1 } : [.5, -.2], legL: [-.5 + Math.sin(lt * 9) * .5, .2], legR: [.5 - Math.sin(lt * 9) * .5, .2] }, { floor: fy, noShadow: true });
     if (hold > 0) { g.save(); const sy = P.handL[1] - 60; g.translate(ep[0], sy + (1 - back(hold)) * 80); g.globalAlpha = clamp(hold * 3); sign(0, 0, 520, 130, '1 670 КМ/Ч', 84); line([-200, 66], [-200, 120], 10); line([200, 66], [200, 120], 10); g.restore(); }
+    g.restore();
     pop(seg(lt, 1.4, 1.9), 945, cy + 90, () => txt('ЭКВАТОР', 0, 0, 44, { fill: '#ff3d3d', stroke: 8 }));
   },
   plane(lt, D, t) {
@@ -323,7 +330,7 @@ function glass(x, y, fill, a, t) {
 // ———————————————————————————— subtitles
 function wrap(s, maxW) { const words = s.split(' '), L = []; let cur = ''; for (const w of words) { const t2 = cur ? cur + ' ' + w : w; if (g.measureText(t2).width > maxW && cur) { L.push(cur); cur = w; } else cur = t2; } if (cur) L.push(cur); return L; }
 const SHOW = s => s.replace('тысяча шестьсот семьдесят километров в час', '1 670 км/ч').replace('девятьсот километров в час', '900 км/ч');
-const SUBS = (() => { const out = VO.map(v => ({ text: SHOW(v.text), a: v.t - .05, b: v.t + v.d })); out.forEach((p, i) => { p.b = Math.max(p.b + .5, p.a + 1.6); if (out[i + 1]) p.b = Math.min(p.b, out[i + 1].a); }); return out; })();
+const SUBS = (() => { const out = VOICE ? PH.map(([a, b, x]) => ({ text: x, a: a + VOICE_OFFSET - .05, b: b + VOICE_OFFSET })) : VO.map(v => ({ text: SHOW(v.text), a: v.t - .05, b: v.t + v.d })); out.forEach((p, i) => { p.b = Math.max(p.b + .5, p.a + 1.6); if (out[i + 1]) p.b = Math.min(p.b, out[i + 1].a); }); return out; })();
 function subs(t, dark) {
   if (qs.get('nosub')) return; const v = SUBS.find(s => t >= s.a && t < s.b); if (!v) return; const f = seg(t, v.a, v.a + .2) * (1 - seg(t, v.b - .15, v.b));
   g.save(); g.globalAlpha = f; g.font = '600 50px Inter'; g.textAlign = 'center'; g.textBaseline = 'middle';
