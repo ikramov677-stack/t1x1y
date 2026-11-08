@@ -4,6 +4,6 @@ Drawing: plain 2D canvas — every figure, room and light drawn in code for this
 Render/mux tools: Lemo-Opuscar core/ (MIT) — https://github.com/lemomo-ai/lemo-opuscar.
 Fonts: Oswald, Inter (SIL Open Font License 1.1, via Google Fonts).
 Music and sound effects: synthesized in numpy for this film (mix.py); no samples.
-Voice: to be added — ElevenLabs recording supplied by the channel owner.
+Voice: ElevenLabs recording (Mark) supplied by the channel owner.
 Facts: the 1964 record of about 11 days without sleep was set by a school student; Guinness stopped accepting such records as dangerous.
 The record photo is an illustration, not a real archive photograph.
