@@ -1,0 +1,7 @@
+«Почему мы забываем сны» — credits for third-party material
+
+Drawing: plain 2D canvas — every figure, room and light drawn in code for this film.
+Render/mux tools: Lemo-Opuscar core/ (MIT) — https://github.com/lemomo-ai/lemo-opuscar.
+Fonts: Oswald, Inter (SIL Open Font License 1.1, via Google Fonts).
+Music and sound effects: synthesized in numpy for this film (mix.py); no samples.
+Voice: to be added — ElevenLabs recording supplied by the channel owner.
