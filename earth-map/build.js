@@ -14,12 +14,23 @@ const names = topo.objects.countries.geometries.map(g => {
   return short[ru] || ru;
 });
 
+const cities = require('./data/cities.json');
+const cc = {};
+for (const r of cities.rows) {
+  const code = r[7];
+  if (cc[code]) continue;
+  const ru = code.length === 2 && countries.getName(code, 'ru');
+  cc[code] = short[ru] || ru || extra[code] || { 'Northern Cyprus': 'Северный Кипр' }[code] || code;
+}
+
 const img = path.join(__dirname, 'node_modules/three-globe') + '/example/img/';
 const uri = f => 'data:image/jpeg;base64,' + fs.readFileSync(img + f).toString('base64');
 
 let html = fs.readFileSync(path.join(__dirname, 'src/template.html'), 'utf8');
 html = html.replace('/*TOPO*/null', () => JSON.stringify(topo))
            .replace('/*NAMES*/null', () => JSON.stringify(names))
+           .replace('/*CITIES*/null', () => JSON.stringify(cities))
+           .replace('/*CC*/null', () => JSON.stringify(cc))
            .replace('__DAY__', () => uri('earth-blue-marble.jpg'))
            .replace('__NIGHT__', () => uri('earth-night.jpg'));
 fs.writeFileSync(path.join(__dirname, 'index.html'), html);

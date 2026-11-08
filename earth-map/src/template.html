@@ -6,12 +6,12 @@
 /* Layout: full-bleed WebGL planet, floating instrument panels in the corners like a spacecraft HUD */
 :root {
   --space: #05070d;
-  --panel: rgba(12, 17, 28, 0.78);
+  --panel: rgba(12, 17, 28, 0.8);
   --line: rgba(160, 190, 230, 0.16);
   --fg: #e8eef8;
   --muted: #8d9bb3;
-  --accent: #ffb547;      /* sunlight */
-  --ice: #7cc4ff;         /* atmosphere */
+  --accent: #ffb547;      /* sunlight, selection, route */
+  --ice: #7cc4ff;         /* atmosphere, hover */
   --display: "Unbounded", "Golos Text", system-ui, sans-serif;
   --body: "Golos Text", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
@@ -20,77 +20,129 @@
 [hidden] { display: none !important; }
 html, body { height: 100%; }
 body { background: var(--space); color: var(--fg); font-family: var(--body); overflow: hidden; touch-action: none; }
-#gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; }
+#gl, #lbl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+#gl { cursor: grab; }
 #gl.drag { cursor: grabbing; }
+#gl.point { cursor: pointer; }
+#lbl { pointer-events: none; z-index: 1; }
 .panel { position: fixed; z-index: 5; background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
          backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
 #head { top: calc(14px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px));
-        width: min(340px, calc(100vw - 32px)); padding: 14px 14px 12px; display: grid; gap: 10px; }
+        width: min(340px, calc(100vw - 32px)); padding: 14px 14px 12px; display: grid; gap: 10px;
+        overflow-y: auto; box-sizing: border-box; }
 h1 { margin: 0; font: 700 22px/1 var(--display); letter-spacing: .02em; }
 h1 small { display: block; margin-top: 6px; font: 400 11px/1.3 var(--body); color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
-#find { position: relative; }
-#q { width: 100%; box-sizing: border-box; padding: 9px 11px; border-radius: 9px; border: 1px solid var(--line);
+.find { position: relative; }
+.find input { width: 100%; box-sizing: border-box; padding: 9px 11px; border-radius: 9px; border: 1px solid var(--line);
      background: rgba(255,255,255,.05); color: var(--fg); font: 500 14px var(--body); outline: none; }
-#q:focus { border-color: var(--ice); }
-#sugg { position: absolute; top: calc(100% + 4px); left: 0; right: 0; max-height: 240px; overflow-y: auto;
+.find input:focus { border-color: var(--ice); }
+.sugg { position: absolute; top: calc(100% + 4px); left: 0; right: 0; max-height: 260px; overflow-y: auto;
         background: #0e1422; border: 1px solid var(--line); border-radius: 9px; z-index: 6; }
-#sugg button { display: block; width: 100%; text-align: left; padding: 8px 11px; border: 0; background: none; color: var(--fg); font: 14px var(--body); cursor: pointer; }
-#sugg button:hover, #sugg button.act { background: rgba(124,196,255,.15); }
+.sugg button { display: flex; justify-content: space-between; gap: 10px; width: 100%; text-align: left; padding: 8px 11px; border: 0;
+               background: none; color: var(--fg); font: 14px var(--body); cursor: pointer; }
+.sugg button small { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sugg button:hover, .sugg button.act { background: rgba(124,196,255,.15); }
 .row { display: flex; flex-wrap: wrap; gap: 6px; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
 .seg button, .chip { border: 0; background: transparent; color: var(--muted); font: 500 13px var(--body); padding: 7px 11px; cursor: pointer; }
 .chip { border: 1px solid var(--line); border-radius: 9px; }
 .seg button[aria-pressed="true"], .chip[aria-pressed="true"] { background: rgba(124,196,255,.16); color: var(--fg); }
-.chip[aria-pressed="true"]#bNight { background: rgba(255,181,71,.16); }
-button:focus-visible, #q:focus-visible { outline: 2px solid var(--ice); outline-offset: 1px; }
+#bNight[aria-pressed="true"], #bRoute[aria-pressed="true"] { background: rgba(255,181,71,.16); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--ice); outline-offset: 1px; }
+#routeBox { display: grid; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
+#routeBox .lab { font: 500 11px var(--body); color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+.pt { display: grid; grid-template-columns: 22px 1fr; align-items: center; gap: 8px; }
+.pt b { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font: 700 11px var(--mono); color: #1a1205; background: var(--accent); }
+.pt b.to { background: var(--fg); }
+dl.data { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; }
+dl.data dt { color: var(--muted); }
+dl.data dd { margin: 0; font-family: var(--mono); font-variant-numeric: tabular-nums; min-width: 0; }
 #card { left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-        width: min(340px, calc(100vw - 32px)); padding: 14px; display: grid; gap: 8px; }
+        width: min(340px, calc(100vw - 32px)); padding: 14px; display: grid; gap: 8px; box-sizing: border-box; }
 #card h2 { margin: 0; font: 700 17px/1.2 var(--display); text-wrap: balance; }
-#card dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; }
-#card dt { color: var(--muted); }
-#card dd { margin: 0; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+#card .sub { margin: -4px 0 0; color: var(--muted); font-size: 13px; }
 #card .hint { color: var(--muted); font-size: 13px; margin: 0; }
+#nav { right: max(16px, env(safe-area-inset-right, 0px)); top: 50%; transform: translateY(-50%); display: grid; overflow: hidden; }
+#nav button { width: 40px; height: 40px; border: 0; background: transparent; color: var(--fg); font: 500 20px/1 var(--body); cursor: pointer; display: grid; place-items: center; }
+#nav button + button { border-top: 1px solid var(--line); }
+#nav button:hover { background: rgba(124,196,255,.16); }
+#nav svg { width: 18px; height: 18px; }
 #clock { right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px));
          padding: 8px 12px; font: 12px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
 #clock b { color: var(--accent); font-weight: 500; }
-#tip { position: fixed; z-index: 4; pointer-events: none; padding: 4px 9px; border-radius: 7px; background: rgba(5,7,13,.85);
+#tip { position: fixed; z-index: 4; pointer-events: none; padding: 4px 9px; border-radius: 7px; background: rgba(5,7,13,.88);
        border: 1px solid var(--line); font: 500 13px var(--body); transform: translate(14px, 14px); white-space: nowrap; }
 #err { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--muted); }
 @media (max-width: 560px) {
-  #clock { bottom: auto; top: calc(14px + env(safe-area-inset-top, 0px)); display: none; }
+  #clock { display: none; }
   #head { padding: 12px; gap: 8px; }
   h1 { font-size: 19px; }
+  #nav { top: auto; transform: none; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); }
+  #card { width: calc(100vw - 92px); }
 }
 </style>
 
 <canvas id="gl" aria-label="Интерактивный глобус Земли"></canvas>
+<canvas id="lbl" aria-hidden="true"></canvas>
 
 <section id="head" class="panel">
-  <h1>Земля<small>Снимки NASA Blue Marble · границы Natural Earth</small></h1>
-  <div id="find">
-    <input id="q" type="search" placeholder="Найти страну: Япония, Бразилия…" autocomplete="off" aria-label="Поиск страны">
-    <div id="sugg" hidden></div>
+  <h1>Земля<small>Снимки NASA · границы и города Natural Earth</small></h1>
+  <div class="find">
+    <input id="q" type="search" placeholder="Город или страна: Самарканд, Япония…" autocomplete="off" aria-label="Поиск города или страны">
   </div>
   <div class="row">
     <div class="seg" role="group" aria-label="Вид">
       <button id="bGlobe" aria-pressed="true">Глобус</button>
       <button id="bFlat" aria-pressed="false">Карта</button>
     </div>
+    <button class="chip" id="bRoute" aria-pressed="false">Маршрут</button>
+    <button class="chip" id="bCities" aria-pressed="true">Города</button>
     <button class="chip" id="bBorders" aria-pressed="true">Границы</button>
     <button class="chip" id="bNight" aria-pressed="true">День и ночь</button>
     <button class="chip" id="bSpin" aria-pressed="true">Вращение</button>
   </div>
+  <div id="routeBox" hidden>
+    <span class="lab">Маршрут по прямой</span>
+    <div class="pt"><b>A</b><div class="find"><input id="rFrom" type="search" placeholder="Откуда: город" autocomplete="off" aria-label="Откуда"></div></div>
+    <div class="pt"><b class="to">B</b><div class="find"><input id="rTo" type="search" placeholder="Куда: город" autocomplete="off" aria-label="Куда"></div></div>
+    <div class="row">
+      <button class="chip" id="rSwap">Поменять местами</button>
+      <button class="chip" id="rFit">Показать весь</button>
+      <button class="chip" id="rClear">Сбросить</button>
+    </div>
+    <dl class="data" id="rInfo" hidden>
+      <dt>Расстояние</dt><dd id="rDist"></dd>
+      <dt>Курс из A</dt><dd id="rBear"></dd>
+      <dt>Полёт</dt><dd id="rTime"></dd>
+      <dt>Разница времени</dt><dd id="rTz"></dd>
+    </dl>
+    <p class="hint" id="rHint" style="margin:0;color:var(--muted);font-size:12px">Выберите города в полях или нажмите на точку карты и выберите «Отсюда» / «Сюда». Линия — кратчайший путь по поверхности Земли (ортодромия), так летают самолёты.</p>
+  </div>
 </section>
 
 <section id="card" class="panel" aria-live="polite">
-  <h2 id="cName">Нажмите на любую точку</h2>
-  <p class="hint" id="cHint">Тяните, чтобы вращать, колесо или два пальца — приближение. Подсветка ночи соответствует реальному положению Солнца прямо сейчас.</p>
-  <dl id="cData" hidden>
+  <h2 id="cName">Нажмите на город или страну</h2>
+  <p class="sub" id="cSub" hidden></p>
+  <p class="hint" id="cHint">Тяните, чтобы вращать, колесо или два пальца — приближение. Чем ближе, тем больше городов. Ночь подсвечена по реальному положению Солнца.</p>
+  <dl class="data" id="cData" hidden>
     <dt>Координаты</dt><dd id="cCoord"></dd>
+    <dt id="cPopL">Население</dt><dd id="cPop"></dd>
+    <dt id="cTimeL">Местное время</dt><dd id="cTime"></dd>
     <dt>Солнце</dt><dd id="cSun"></dd>
-    <dt>Солнечное время</dt><dd id="cTime"></dd>
   </dl>
+  <div class="row" id="cAct" hidden>
+    <button class="chip" id="aFrom">Отсюда</button>
+    <button class="chip" id="aTo">Сюда</button>
+  </div>
 </section>
+
+<nav id="nav" class="panel" aria-label="Навигация">
+  <button id="nIn" title="Приблизить (+)" aria-label="Приблизить">+</button>
+  <button id="nOut" title="Отдалить (−)" aria-label="Отдалить">−</button>
+  <button id="nHome" title="Вся Земля (0)" aria-label="Вся Земля">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg>
+  </button>
+</nav>
 
 <div id="clock" class="panel">UTC <b id="utc">--:--</b> · подсолнечная точка <span id="subsolar">—</span></div>
 <div id="tip" hidden></div>
@@ -101,6 +153,8 @@ button:focus-visible, #q:focus-visible { outline: 2px solid var(--ice); outline-
 <script>
 const TOPO = /*TOPO*/null;
 const NAMES = /*NAMES*/null;
+const CITIES = /*CITIES*/null;
+const CC = /*CC*/null;
 const DAY_SRC = "__DAY__";
 const NIGHT_SRC = "__NIGHT__";
 
@@ -109,29 +163,39 @@ if (!window.THREE || !window.d3 || !window.topojson) {
   document.body.insertAdjacentHTML('beforeend', '<div id="err">Не удалось загрузить библиотеки. Проверьте подключение к интернету и обновите страницу.</div>');
   return;
 }
-const PI = Math.PI, RAD = PI / 180, DEG = 180 / PI;
+const PI = Math.PI, RAD = PI / 180, DEG = 180 / PI, R_EARTH = 6371;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const $ = id => document.getElementById(id);
+const nVec = (lat, lon) => new THREE.Vector3(Math.cos(lat) * Math.sin(lon), Math.sin(lat), Math.cos(lat) * Math.cos(lon));
 
 // ---------- данные ----------
 const features = topojson.feature(TOPO, TOPO.objects.countries).features;
 features.forEach((f, i) => {
+  f.kind = 'country';
   f.ru = NAMES[i] || f.properties.name;
+  f.en = f.properties.name;
   f.bounds = d3.geoBounds(f);
   f.centroid = d3.geoCentroid(f);
   f.area = d3.geoArea(f);
 });
+const cities = CITIES.rows.map(r => ({
+  kind: 'city', ru: r[0], en: r[1], lat: r[2], lon: r[3], pop: r[4], rank: r[5], cap: r[6],
+  country: CC[r[7]] || r[7], tz: r[8] >= 0 ? CITIES.tz[r[8]] : null,
+  n: nVec(r[2] * RAD, r[3] * RAD),
+}));
 
 // ---------- рендер ----------
 const canvas = $('gl');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const DPR = Math.min(devicePixelRatio, 2);
+renderer.setPixelRatio(DPR);
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(40, 1, 0.01, 100);
+const camera = new THREE.PerspectiveCamera(40, 1, 0.005, 100);
+const TAN = Math.tan(20 * RAD);
 
 const loader = new THREE.TextureLoader();
 const maxAniso = renderer.capabilities.getMaxAnisotropy();
-function tex(src) { const t = loader.load(src); t.anisotropy = maxAniso; return t; }
+function tex(src) { const t = loader.load(src, () => dirty = true); t.anisotropy = maxAniso; return t; }
 
 const U = {
   uDay: { value: tex(DAY_SRC) },
@@ -140,8 +204,6 @@ const U = {
   uMorph: { value: 0 },
   uSun: { value: new THREE.Vector3(1, 0, 0) },
   uNightOn: { value: 1 },
-  uColor: { value: new THREE.Color(0xffffff) },
-  uAlpha: { value: 1 },
   uLift: { value: 0 },
 };
 
@@ -175,13 +237,11 @@ const earthMat = new THREE.ShaderMaterial({
       float lit = smoothstep(-0.08, 0.12, d);
       vec3 dark = day * 0.09 + night * vec3(1.25, 1.05, 0.8) * 1.3;
       vec3 col = mix(dark, day * (0.92 + 0.15 * clamp(d, 0.0, 1.0)), lit);
-      // тёплая полоса сумерек на линии терминатора
       col += vec3(0.35, 0.16, 0.02) * (1.0 - abs(lit * 2.0 - 1.0)) * 0.35;
       gl_FragColor = vec4(mix(day, col, uNightOn), 1.0);
     }`,
 });
-const earth = new THREE.Mesh(new THREE.PlaneGeometry(1, 1, 360, 180), earthMat);
-scene.add(earth);
+scene.add(new THREE.Mesh(new THREE.PlaneGeometry(1, 1, 360, 180), earthMat));
 
 // Атмосфера (только в режиме глобуса)
 const atmo = new THREE.Mesh(new THREE.SphereGeometry(1.06, 96, 64), new THREE.ShaderMaterial({
@@ -203,7 +263,7 @@ scene.add(atmo);
   scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0xbfd2ff, size: 0.09, sizeAttenuation: true, transparent: true, opacity: 0.8 })));
 }
 
-// Линии (границы, подсветка) — те же правила размещения, что и у поверхности
+// Линии границ — те же правила размещения, что и у поверхности
 function lineMaterial(color, alpha, lift) {
   return new THREE.ShaderMaterial({
     uniforms: { uRot: U.uRot, uMorph: U.uMorph, uColor: { value: new THREE.Color(color) }, uAlpha: { value: alpha }, uLift: { value: lift } },
@@ -216,7 +276,7 @@ function linesFrom(multiLine) {
   const out = [];
   for (const line of multiLine) for (let i = 1; i < line.length; i++) {
     const a = line[i - 1], b = line[i];
-    if (Math.abs(a[0] - b[0]) > 180) continue;           // не тянуть отрезок через линию перемены дат
+    if (Math.abs(a[0] - b[0]) > 180) continue;
     out.push(a[0] * RAD, a[1] * RAD, b[0] * RAD, b[1] * RAD);
   }
   const g = new THREE.BufferGeometry();
@@ -225,23 +285,20 @@ function linesFrom(multiLine) {
   return g;
 }
 const borderMesh = topojson.mesh(TOPO, TOPO.objects.countries, (a, b) => a !== b);
-const borders = new THREE.LineSegments(linesFrom(borderMesh.coordinates), lineMaterial(0xffffff, 0.45, 0.0015));
+const borders = new THREE.LineSegments(linesFrom(borderMesh.coordinates), lineMaterial(0xffffff, 0.4, 0.0015));
 borders.frustumCulled = false;
 scene.add(borders);
 
 const hiMat = lineMaterial(0xffb547, 1, 0.0025);
 const hoverMat = lineMaterial(0x7cc4ff, 0.9, 0.002);
 let hiLines = null, hoverLines = null;
-function outline(f) {
-  const geom = f.geometry;
-  const rings = geom.type === 'Polygon' ? geom.coordinates : geom.coordinates.flat();
-  return rings;
-}
 function setLines(old, f, mat) {
   if (old) { scene.remove(old); old.geometry.dispose(); }
   if (!f) return null;
-  const l = new THREE.LineSegments(linesFrom(outline(f)), mat);
+  const g = f.geometry, rings = g.type === 'Polygon' ? g.coordinates : g.coordinates.flat();
+  const l = new THREE.LineSegments(linesFrom(rings), mat);
   l.frustumCulled = false; l.renderOrder = 2; scene.add(l);
+  dirty = true;
   return l;
 }
 
@@ -257,7 +314,6 @@ function sunNow(date) {
   let lon = ra - gmst; lon = Math.atan2(Math.sin(lon), Math.cos(lon));
   return { lat: decl, lon };
 }
-const nVec = (lat, lon) => new THREE.Vector3(Math.cos(lat) * Math.sin(lon), Math.sin(lat), Math.cos(lat) * Math.cos(lon));
 let sun = sunNow(new Date());
 function updateSun() {
   const now = new Date();
@@ -265,46 +321,248 @@ function updateSun() {
   U.uSun.value.copy(nVec(sun.lat, sun.lon));
   $('utc').textContent = now.toISOString().slice(11, 16);
   $('subsolar').textContent = fmtLL(sun.lat * DEG, sun.lon * DEG, 1);
+  if (sel) showInfo(sel);
+  dirty = true;
 }
 
 // ---------- состояние вида ----------
 const view = {
-  lat: 25 * RAD, lon: 50 * RAD, dist: 3.4,      // глобус
-  px: 0, py: 0, fz: 0,                          // карта: центр и удаление камеры
+  lat: 30 * RAD, lon: 55 * RAD, dist: 3.4,
+  px: 0, py: 0, fz: 0,
   mode: 'globe', morph: 0, spin: !reduceMotion,
 };
-let anim = null;  // {from, to, t0, dur}
-const fitFlat = () => Math.max(2 / (2 * Math.tan(20 * RAD)), 4 / (2 * Math.tan(20 * RAD) * camera.aspect)) * 1.02;
+let anim = null, dirty = true;
+const fitFlat = () => Math.max(1 / TAN, 2 / (TAN * camera.aspect)) * 1.02;
 
+const lbl = $('lbl'), lx = lbl.getContext('2d');
 function resize() {
   const w = innerWidth, h = innerHeight;
   renderer.setSize(w, h, false);
+  lbl.width = Math.round(w * DPR); lbl.height = Math.round(h * DPR);
   camera.aspect = w / h; camera.updateProjectionMatrix();
-  if (view.mode === 'flat') view.fz = Math.min(view.fz, fitFlat());
+  if (view.mode === 'flat') { view.fz = Math.min(view.fz, fitFlat()); clampFlat(); }
+  dirty = true;
 }
 addEventListener('resize', resize); resize();
+// панель поиска не должна заезжать на карточку снизу
+function layout() {
+  const head = $('head'), card = $('card');
+  const top = head.getBoundingClientRect().top, bottom = card.getBoundingClientRect().top;
+  head.style.maxHeight = Math.max(150, bottom - top - 10) + 'px';
+  dirty = true;
+}
+new ResizeObserver(layout).observe($('card'));
+addEventListener('resize', layout);
 view.fz = fitFlat();
 
 const rotM = new THREE.Matrix4(), tmp = new THREE.Matrix4();
+let ease = 0;
 function applyView() {
   rotM.makeRotationX(view.lat).multiply(tmp.makeRotationY(-view.lon));
   U.uRot.value.setFromMatrix4(rotM);
-  const m = view.morph, e = m * m * (3 - 2 * m);
-  U.uMorph.value = e;
-  atmo.material.uniforms.uA.value = 1 - e;
-  atmo.visible = e < 0.99;
-  // камера: глобус — (0,0,dist); карта — над точкой (px, py)
-  camera.position.set(view.px * e, view.py * e, view.dist * (1 - e) + view.fz * e);
-  camera.lookAt(view.px * e, view.py * e, 0);
+  const m = view.morph; ease = m * m * (3 - 2 * m);
+  U.uMorph.value = ease;
+  atmo.material.uniforms.uA.value = 1 - ease;
+  atmo.visible = ease < 0.99;
+  camera.position.set(view.px * ease, view.py * ease, view.dist * (1 - ease) + view.fz * ease);
+  camera.lookAt(view.px * ease, view.py * ease, 0);
+  camera.updateMatrixWorld();
+}
+
+// ---------- проекция точки на экран (для подписей и маршрута) ----------
+const pv = new THREE.Vector3();
+// возвращает [x, y] в CSS-пикселях или null, если точка за горизонтом / вне экрана
+function screenOf(n, lat, lon, lift = 0) {
+  if (ease > 0.001 && ease < 0.999) return null;
+  if (ease < 0.5) {
+    pv.copy(n).applyMatrix3(U.uRot.value).multiplyScalar(1 + lift);
+    // перекрывает ли Земля точку: пересечение луча камера→точка со сферой
+    const cx = pv.x, cy = pv.y, cz = pv.z - view.dist;
+    const L = Math.hypot(cx, cy, cz), dx = cx / L, dy = cy / L, dz = cz / L;
+    const b = dz * view.dist, c = view.dist * view.dist - 1, disc = b * b - c;
+    if (disc > 0 && (-b - Math.sqrt(disc)) < L - 1e-4) return null;
+  } else {
+    pv.set(lon / 90, lat / 90, 0);
+  }
+  pv.project(camera);
+  if (pv.z > 1 || pv.x < -1.1 || pv.x > 1.1 || pv.y < -1.1 || pv.y > 1.1) return null;
+  return [(pv.x + 1) / 2 * innerWidth, (1 - pv.y) / 2 * innerHeight];
+}
+// сколько экранных пикселей занимает 1° в центре вида
+function pxPerDeg() {
+  return ease < 0.5
+    ? innerHeight / 2 / (TAN * Math.max(0.001, view.dist - 1)) * RAD
+    : innerHeight / 2 / (TAN * view.fz) / 90;
+}
+
+// ---------- подписи городов ----------
+let showCities = true, placed = [], hoverCity = null;
+const FONT = '500 12px "Golos Text", system-ui, sans-serif', FONT_CAP = '600 13px "Golos Text", system-ui, sans-serif';
+function drawOverlay(t) {
+  const W = innerWidth, H = innerHeight;
+  lx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  lx.clearRect(0, 0, W, H);
+  placed = [];
+  drawRoute(t);
+  if (!showCities) return;
+  const ppd = pxPerDeg();
+  const maxRank = ppd < 5 ? 2 : ppd < 9 ? 3 : ppd < 16 ? 5 : ppd < 30 ? 6 : ppd < 60 ? 7 : ppd < 120 ? 8 : 10;
+  const maxLabels = W < 560 ? 70 : 170;
+  const boxes = [];
+  const hits = (x0, y0, x1, y1) => {
+    for (const b of boxes) if (x0 < b[2] && x1 > b[0] && y0 < b[3] && y1 > b[1]) return true;
+    return false;
+  };
+  // уже занятые места: панели интерфейса
+  for (const id of ['head', 'card', 'nav', 'clock']) {
+    const el = $(id); if (!el.getClientRects().length) continue;
+    const r = el.getBoundingClientRect(); boxes.push([r.left - 4, r.top - 4, r.right + 4, r.bottom + 4]);
+  }
+  lx.textBaseline = 'middle';
+  for (const c of cities) {
+    if (placed.length >= maxLabels) break;
+    const forced = c === sel || c === route.a || c === route.b;
+    if (!forced && c.rank > maxRank) continue;
+    const s = screenOf(c.n, c.lat, c.lon);
+    if (!s) continue;
+    const big = c.cap === 2;
+    lx.font = big ? FONT_CAP : FONT;
+    const w = lx.measureText(c.ru).width;
+    const [x, y] = s;
+    const box = [x - 5, y - 9, x + 9 + w, y + 9];
+    if (!forced && hits(...box)) continue;
+    boxes.push(box);
+    placed.push({ c, x, y, box });
+  }
+  // рисуем в обратном порядке, чтобы важные города были сверху
+  for (let i = placed.length - 1; i >= 0; i--) {
+    const { c, x, y } = placed[i];
+    const big = c.cap === 2, on = c === sel || c === hoverCity;
+    lx.font = big ? FONT_CAP : FONT;
+    lx.beginPath();
+    if (big) lx.rect(x - 3.5, y - 3.5, 7, 7); else lx.arc(x, y, 2.6, 0, 2 * PI);
+    lx.fillStyle = on ? '#ffb547' : '#ffffff'; lx.fill();
+    lx.lineWidth = 1.5; lx.strokeStyle = 'rgba(5,7,13,.8)'; lx.stroke();
+    lx.lineWidth = 3.2; lx.lineJoin = 'round'; lx.strokeStyle = 'rgba(5,7,13,.78)';
+    lx.strokeText(c.ru, x + 7, y);
+    lx.fillStyle = on ? '#ffb547' : big ? '#ffffff' : '#dfe7f3';
+    lx.fillText(c.ru, x + 7, y);
+  }
+}
+function cityAtScreen(x, y) {
+  for (const p of placed) {
+    if (Math.hypot(p.x - x, p.y - y) < 9 || (x >= p.box[0] && x <= p.box[2] && y >= p.box[1] && y <= p.box[3])) return p.c;
+  }
+  return null;
+}
+
+// ---------- маршрут ----------
+const route = { a: null, b: null, pts: [], t0: 0 };
+function buildRoute() {
+  route.pts = [];
+  const { a, b } = route;
+  $('rInfo').hidden = !(a && b);
+  if (!(a && b)) { dirty = true; return; }
+  const ang = d3.geoDistance([a.lon, a.lat], [b.lon, b.lat]);
+  const ip = d3.geoInterpolate([a.lon, a.lat], [b.lon, b.lat]);
+  const N = Math.max(24, Math.min(240, Math.round(ang * DEG * 2)));
+  const h = Math.min(0.12, ang * 0.07);
+  for (let i = 0; i <= N; i++) {
+    const t = i / N, [lon, lat] = ip(t);
+    route.pts.push({ lat, lon, lift: h * Math.sin(PI * t), n: nVec(lat * RAD, lon * RAD) });
+  }
+  route.t0 = performance.now();
+  const km = ang * R_EARTH;
+  $('rDist').textContent = Math.round(km).toLocaleString('ru') + ' км · ' + Math.round(km / 1.852).toLocaleString('ru') + ' миль';
+  const brg = bearing(a, b);
+  $('rBear').textContent = Math.round(brg) + '° · ' + compass(brg);
+  const hrs = km / 850 + 0.5;
+  $('rTime').textContent = '≈ ' + Math.floor(hrs) + ' ч ' + String(Math.round((hrs % 1) * 60)).padStart(2, '0') + ' мин (850 км/ч)';
+  const oa = tzOffset(a), ob = tzOffset(b);
+  if (oa != null && ob != null) {
+    const d = (ob - oa) / 60;
+    $('rTz').textContent = d === 0 ? 'нет' : (d > 0 ? '+' : '−') + fmtH(Math.abs(d)) + ' в B';
+  } else $('rTz').textContent = '—';
+  dirty = true;
+}
+const fmtH = h => (h % 1 ? h.toFixed(1).replace('.', ',') : h) + ' ч';
+function bearing(a, b) {
+  const p1 = a.lat * RAD, p2 = b.lat * RAD, dl = (b.lon - a.lon) * RAD;
+  return (Math.atan2(Math.sin(dl) * Math.cos(p2), Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl)) * DEG + 360) % 360;
+}
+const COMPASS = ['С', 'ССВ', 'СВ', 'ВСВ', 'В', 'ВЮВ', 'ЮВ', 'ЮЮВ', 'Ю', 'ЮЮЗ', 'ЮЗ', 'ЗЮЗ', 'З', 'ЗСЗ', 'СЗ', 'ССЗ'];
+const compass = d => COMPASS[Math.round(d / 22.5) % 16];
+function tzOffset(p) {
+  if (!p.tz) return Math.round(p.lon / 15) * 60;   // для произвольной точки — по долготе
+  try {
+    const s = new Intl.DateTimeFormat('en-US', { timeZone: p.tz, timeZoneName: 'longOffset' }).format(new Date());
+    const m = s.match(/GMT([+-])(\d{2}):?(\d{2})?/);
+    return m ? (m[1] === '-' ? -1 : 1) * (+m[2] * 60 + +(m[3] || 0)) : 0;
+  } catch { return null; }
+}
+function drawRoute(t) {
+  const pts = route.pts;
+  const ends = [route.a, route.b];
+  if (pts.length) {
+    lx.lineWidth = 2.5; lx.strokeStyle = '#ffb547'; lx.lineCap = 'round';
+    lx.shadowColor = 'rgba(255,181,71,.6)'; lx.shadowBlur = 8;
+    lx.beginPath();
+    let pen = false, prev = null;
+    for (const p of pts) {
+      const s = screenOf(p.n, p.lat, p.lon, p.lift);
+      if (!s || (prev && ease > 0.5 && Math.abs(p.lon - prev.lon) > 180)) { pen = false; prev = p; if (!s) continue; }
+      if (pen) lx.lineTo(s[0], s[1]); else lx.moveTo(s[0], s[1]);
+      pen = true; prev = p;
+    }
+    lx.stroke(); lx.shadowBlur = 0;
+    // самолёт
+    const k = ((t - route.t0) / 7000) % 1, i = Math.min(pts.length - 2, Math.floor(k * (pts.length - 1)));
+    const p0 = pts[i], p1 = pts[i + 1];
+    const s0 = screenOf(p0.n, p0.lat, p0.lon, p0.lift), s1 = screenOf(p1.n, p1.lat, p1.lon, p1.lift);
+    if (s0 && s1) {
+      const f = k * (pts.length - 1) - i, x = s0[0] + (s1[0] - s0[0]) * f, y = s0[1] + (s1[1] - s0[1]) * f;
+      lx.save(); lx.translate(x, y); lx.rotate(Math.atan2(s1[1] - s0[1], s1[0] - s0[0]));
+      lx.fillStyle = '#fff'; lx.strokeStyle = 'rgba(5,7,13,.85)'; lx.lineWidth = 1.5;
+      lx.beginPath();
+      lx.moveTo(9, 0); lx.lineTo(1, -2); lx.lineTo(-3, -9); lx.lineTo(-5, -9); lx.lineTo(-3, -2); lx.lineTo(-7, -2);
+      lx.lineTo(-9, -5); lx.lineTo(-10, -5); lx.lineTo(-9, 0); lx.lineTo(-10, 5); lx.lineTo(-9, 5); lx.lineTo(-7, 2);
+      lx.lineTo(-3, 2); lx.lineTo(-5, 9); lx.lineTo(-3, 9); lx.lineTo(1, 2); lx.closePath();
+      lx.fill(); lx.stroke(); lx.restore();
+    }
+  }
+  ends.forEach((p, i) => {
+    if (!p) return;
+    const s = screenOf(nVec(p.lat * RAD, p.lon * RAD), p.lat, p.lon);
+    if (!s) return;
+    lx.beginPath(); lx.arc(s[0], s[1], 9, 0, 2 * PI);
+    lx.fillStyle = i ? '#e8eef8' : '#ffb547'; lx.fill();
+    lx.lineWidth = 2; lx.strokeStyle = 'rgba(5,7,13,.85)'; lx.stroke();
+    lx.fillStyle = '#1a1205'; lx.font = '700 10px "JetBrains Mono", monospace'; lx.textAlign = 'center';
+    lx.fillText(i ? 'B' : 'A', s[0], s[1] + 0.5); lx.textAlign = 'start';
+  });
+}
+function setEnd(which, p) {
+  route[which] = p;
+  $(which === 'a' ? 'rFrom' : 'rTo').value = p ? p.ru : '';
+  openRoute(true);
+  buildRoute();
+  if (route.a && route.b) fitRoute();
+}
+function fitRoute() {
+  const { a, b } = route; if (!(a && b)) return;
+  const mid = d3.geoInterpolate([a.lon, a.lat], [b.lon, b.lat])(0.5);
+  const span = d3.geoDistance([a.lon, a.lat], [b.lon, b.lat]) * DEG;
+  flyToPoint(mid[1], mid[0], span * 1.3);
 }
 
 // ---------- взаимодействие ----------
 const ptrs = new Map();
-let dragMoved = 0, pinch0 = 0, lastTap = 0;
+let dragMoved = 0, pinch0 = 0;
+function stopSpin() { view.spin = false; setPressed('bSpin', false); }
 canvas.addEventListener('pointerdown', e => {
   canvas.setPointerCapture(e.pointerId);
   ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
-  dragMoved = 0; anim = null; view.spin = false; setPressed('bSpin', false);
+  dragMoved = 0; anim = null; stopSpin();
   if (ptrs.size === 2) pinch0 = pinchDist();
   canvas.classList.add('drag');
 });
@@ -314,19 +572,21 @@ canvas.addEventListener('pointermove', e => {
   const dx = e.clientX - p.x, dy = e.clientY - p.y;
   p.x = e.clientX; p.y = e.clientY;
   dragMoved += Math.abs(dx) + Math.abs(dy);
-  if (ptrs.size === 2) {
-    const d = pinchDist(); if (pinch0) zoom(pinch0 / d); pinch0 = d; return;
-  }
+  if (ptrs.size === 2) { const d = pinchDist(); if (pinch0) zoom(pinch0 / d); pinch0 = d; return; }
+  pan(dx, dy);
+  $('tip').hidden = true;
+});
+function pan(dx, dy) {
   const h = innerHeight;
   if (view.mode === 'globe') {
     const k = (view.dist - 1) / h * 1.6;
     view.lon -= dx * k; view.lat = Math.max(-85 * RAD, Math.min(85 * RAD, view.lat + dy * k));
   } else {
-    const k = 2 * Math.tan(20 * RAD) * view.fz / h;
+    const k = 2 * TAN * view.fz / h;
     view.px -= dx * k; view.py += dy * k; clampFlat();
   }
-  $('tip').hidden = true;
-});
+  dirty = true;
+}
 function endPtr(e) {
   const had = ptrs.delete(e.pointerId);
   if (!ptrs.size) canvas.classList.remove('drag');
@@ -335,15 +595,22 @@ function endPtr(e) {
 }
 canvas.addEventListener('pointerup', endPtr);
 canvas.addEventListener('pointercancel', e => { ptrs.delete(e.pointerId); canvas.classList.remove('drag'); });
-canvas.addEventListener('pointerleave', () => { if (!ptrs.size) { $('tip').hidden = true; setHover(null); } });
+canvas.addEventListener('pointerleave', () => { if (!ptrs.size) { $('tip').hidden = true; setHover(null, null); } });
 canvas.addEventListener('wheel', e => { e.preventDefault(); anim = null; zoom(Math.exp(e.deltaY * 0.0012)); }, { passive: false });
 function pinchDist() { const [a, b] = [...ptrs.values()]; return Math.hypot(a.x - b.x, a.y - b.y) || 1; }
 function zoom(f) {
-  if (view.mode === 'globe') view.dist = 1 + Math.max(0.03, Math.min(7, (view.dist - 1) * f));
-  else { view.fz = Math.max(0.03, Math.min(fitFlat(), view.fz * f)); clampFlat(); }
+  if (view.mode === 'globe') view.dist = 1 + Math.max(0.012, Math.min(7, (view.dist - 1) * f));
+  else { view.fz = Math.max(0.02, Math.min(fitFlat(), view.fz * f)); clampFlat(); }
+  dirty = true;
+}
+function zoomAnimated(f) {
+  const to = { ...view };
+  if (view.mode === 'globe') to.dist = 1 + Math.max(0.012, Math.min(7, (view.dist - 1) * f));
+  else to.fz = Math.max(0.02, Math.min(fitFlat(), view.fz * f));
+  startAnim(to, 350, false);
 }
 function clampFlat() {
-  const hh = Math.tan(20 * RAD) * view.fz, hw = hh * camera.aspect;
+  const hh = TAN * view.fz, hw = hh * camera.aspect;
   view.px = Math.max(-2 + Math.min(hw, 2), Math.min(2 - Math.min(hw, 2), view.px));
   view.py = Math.max(-1 + Math.min(hh, 1), Math.min(1 - Math.min(hh, 1), view.py));
 }
@@ -376,23 +643,26 @@ function countryAt(lat, lon) {
   return best;
 }
 
-let hoverF = null, selF = null, hoverQueued = null;
-function setHover(f) {
+let hoverF = null, sel = null, selCountry = null, hoverQueued = null;
+function setHover(f, c) {
+  if (c !== hoverCity) { hoverCity = c; dirty = true; }
   if (f === hoverF) return;
   hoverF = f;
-  hoverLines = setLines(hoverLines, f && f !== selF ? f : null, hoverMat);
+  hoverLines = setLines(hoverLines, f && f !== selCountry ? f : null, hoverMat);
 }
-function hover(x, y) {
-  if (matchMedia('(hover: none)').matches) return;
-  hoverQueued = [x, y];
-}
+const noHover = matchMedia('(hover: none)');
+function hover(x, y) { if (!noHover.matches) hoverQueued = [x, y]; }
 function doHover() {
   if (!hoverQueued) return;
   const [x, y] = hoverQueued; hoverQueued = null;
-  const ll = latLonAt(x, y), tip = $('tip');
+  const tip = $('tip');
+  const c = cityAtScreen(x, y);
+  const ll = c ? null : latLonAt(x, y);
   const f = ll && countryAt(ll[0], ll[1]);
-  setHover(f);
-  if (f) { tip.textContent = f.ru; tip.style.left = x + 'px'; tip.style.top = y + 'px'; tip.hidden = false; }
+  setHover(c ? null : f, c);
+  canvas.classList.toggle('point', !!c);
+  const text = c ? c.ru + ' · ' + c.country : f ? f.ru : '';
+  if (text) { tip.textContent = text; tip.style.left = x + 'px'; tip.style.top = y + 'px'; tip.hidden = false; }
   else tip.hidden = true;
 }
 
@@ -400,43 +670,78 @@ function fmtLL(lat, lon, d = 3) {
   lon = ((lon + 540) % 360) - 180;
   return Math.abs(lat).toFixed(d) + '° ' + (lat >= 0 ? 'с.ш.' : 'ю.ш.') + ', ' + Math.abs(lon).toFixed(d) + '° ' + (lon >= 0 ? 'в.д.' : 'з.д.');
 }
+const fmtPop = p => p >= 1e6 ? (p / 1e6).toLocaleString('ru', { maximumFractionDigits: 1 }) + ' млн' : p.toLocaleString('ru');
 function pick(x, y) {
+  const c = cityAtScreen(x, y);
+  if (c) { select(c); return; }
   const ll = latLonAt(x, y);
   if (!ll) return;
   const f = countryAt(ll[0], ll[1]);
-  showInfo(f, ll[0], ll[1]);
+  select({ kind: 'point', lat: ll[0], lon: ll[1], country: f, ru: f ? 'Точка в стране ' + f.ru : 'Точка в океане' });
 }
-function showInfo(f, lat, lon) {
-  selF = f;
-  hiLines = setLines(hiLines, f, hiMat);
+function select(o) {
+  sel = o;
+  selCountry = o.kind === 'country' ? o : o.kind === 'point' ? o.country : null;
+  hiLines = setLines(hiLines, selCountry, hiMat);
   hoverLines = setLines(hoverLines, null, hoverMat);
-  $('cName').textContent = f ? f.ru : 'Мировой океан';
-  $('cHint').hidden = true; $('cData').hidden = false;
+  showInfo(o);
+  dirty = true;
+}
+function showInfo(o) {
+  const lat = o.kind === 'country' ? o.centroid[1] : o.lat, lon = o.kind === 'country' ? o.centroid[0] : o.lon;
+  $('cName').textContent = o.kind === 'point' ? (o.country ? o.country.ru : 'Мировой океан') : o.ru;
+  const sub = o.kind === 'city' ? (o.cap === 2 ? 'Столица · ' : o.cap === 1 ? 'Центр региона · ' : 'Город · ') + o.country
+            : o.kind === 'country' ? 'Страна' : 'Выбранная точка';
+  $('cSub').textContent = sub; $('cSub').hidden = false;
+  $('cHint').hidden = true; $('cData').hidden = false; $('cAct').hidden = o.kind === 'country';
   $('cCoord').textContent = fmtLL(lat, lon);
+  const hasPop = o.kind === 'city' && o.pop > 0;
+  $('cPop').hidden = $('cPopL').hidden = !hasPop;
+  if (hasPop) $('cPop').textContent = fmtPop(o.pop) + ' чел.';
+  const now = new Date();
+  let timeText = null;
+  if (o.tz) {
+    try { timeText = new Intl.DateTimeFormat('ru', { timeZone: o.tz, hour: '2-digit', minute: '2-digit', weekday: 'short' }).format(now); } catch {}
+  }
+  $('cTimeL').textContent = timeText ? 'Местное время' : 'Солнечное время';
+  if (!timeText) {
+    const solar = ((now.getUTCHours() * 60 + now.getUTCMinutes()) + lon * 4 + 1440 * 2) % 1440;
+    timeText = String(Math.floor(solar / 60)).padStart(2, '0') + ':' + String(Math.floor(solar % 60)).padStart(2, '0');
+  }
+  $('cTime').textContent = timeText;
   const elev = Math.asin(Math.max(-1, Math.min(1, nVec(lat * RAD, lon * RAD).dot(nVec(sun.lat, sun.lon))))) * DEG;
   $('cSun').textContent = (elev >= 0 ? 'над горизонтом ' : 'под горизонтом ') + Math.abs(elev).toFixed(0) + '° · ' +
     (elev > 0 ? 'день' : elev > -6 ? 'сумерки' : 'ночь');
-  const now = new Date();
-  const solar = ((now.getUTCHours() * 60 + now.getUTCMinutes()) + lon * 4 + 1440 * 2) % 1440;
-  $('cTime').textContent = String(Math.floor(solar / 60)).padStart(2, '0') + ':' + String(Math.floor(solar % 60)).padStart(2, '0');
 }
+const asEnd = o => o.kind === 'point'
+  ? { kind: 'point', lat: o.lat, lon: o.lon, ru: o.lat.toFixed(2) + '°, ' + o.lon.toFixed(2) + '°' }
+  : o;
+$('aFrom').onclick = () => sel && setEnd('a', asEnd(sel));
+$('aTo').onclick = () => sel && setEnd('b', asEnd(sel));
 
-// перелёт к стране
-function flyTo(f) {
-  const [lon, lat] = f.centroid;
-  const span = Math.max(f.bounds[1][1] - f.bounds[0][1], ((f.bounds[1][0] - f.bounds[0][0]) + 360) % 360 || 360);
+// перелёты
+function startAnim(to, dur, swoop) {
+  stopSpin();
+  anim = { from: { ...view }, to, t0: performance.now(), dur: reduceMotion ? 1 : dur, swoop };
+}
+function flyToPoint(lat, lon, spanDeg) {
   const to = { ...view };
   if (view.mode === 'globe') {
     let dl = lon * RAD - view.lon; dl = Math.atan2(Math.sin(dl), Math.cos(dl));
     to.lon = view.lon + dl; to.lat = Math.max(-80, Math.min(80, lat)) * RAD;
-    to.dist = 1 + Math.max(0.12, Math.min(2.4, span / 38));
+    to.dist = 1 + Math.max(0.03, Math.min(2.4, spanDeg / 38));
   } else {
     to.px = lon / 90; to.py = lat / 90;
-    to.fz = Math.max(0.08, Math.min(fitFlat(), span / 32));
+    to.fz = Math.max(0.03, Math.min(fitFlat(), spanDeg / 32));
   }
-  view.spin = false; setPressed('bSpin', false);
-  anim = { from: { ...view }, to, t0: performance.now(), dur: reduceMotion ? 1 : 1400 };
-  showInfo(f, lat, lon);
+  startAnim(to, 1500, true);
+}
+function flyTo(o) {
+  if (o.kind === 'country') {
+    const f = o, span = Math.max(f.bounds[1][1] - f.bounds[0][1], ((f.bounds[1][0] - f.bounds[0][0]) + 360) % 360 || 360);
+    flyToPoint(f.centroid[1], f.centroid[0], span);
+  } else flyToPoint(o.lat, o.lon, o.cap === 2 ? 5 : 3);
+  select(o);
 }
 
 // режимы
@@ -444,55 +749,112 @@ function setPressed(id, v) { $(id).setAttribute('aria-pressed', String(v)); }
 function setMode(m) {
   if (m === view.mode) return;
   if (m === 'flat') {
-    view.fz = fitFlat(); view.px = 0; view.py = 0;
+    // сохраняем центр вида при развороте в карту
+    view.fz = Math.min(fitFlat(), Math.max(0.05, (view.dist - 1) * 1.1 + 0.2));
+    view.px = (((view.lon * DEG + 540) % 360) - 180) / 90; view.py = view.lat * DEG / 90;
+    clampFlat();
   } else {
-    view.dist = Math.max(view.dist, 2.6);
+    view.lon = view.px * 90 * RAD; view.lat = Math.max(-85, Math.min(85, view.py * 90)) * RAD;
+    view.dist = 1 + Math.max(0.15, Math.min(2.4, view.fz * 0.9));
   }
+  anim = null;
   view.mode = m;
   setPressed('bGlobe', m === 'globe'); setPressed('bFlat', m === 'flat');
-  $('tip').hidden = true; setHover(null);
+  $('tip').hidden = true; setHover(null, null);
 }
 $('bGlobe').onclick = () => setMode('globe');
 $('bFlat').onclick = () => setMode('flat');
-$('bBorders').onclick = () => { borders.visible = !borders.visible; setPressed('bBorders', borders.visible); };
-$('bNight').onclick = () => { U.uNightOn.value = U.uNightOn.value ? 0 : 1; setPressed('bNight', !!U.uNightOn.value); };
+$('bBorders').onclick = () => { borders.visible = !borders.visible; setPressed('bBorders', borders.visible); dirty = true; };
+$('bCities').onclick = () => { showCities = !showCities; setPressed('bCities', showCities); dirty = true; };
+$('bNight').onclick = () => { U.uNightOn.value = U.uNightOn.value ? 0 : 1; setPressed('bNight', !!U.uNightOn.value); dirty = true; };
 $('bSpin').onclick = () => { view.spin = !view.spin; setPressed('bSpin', view.spin); if (view.spin) setMode('globe'); };
 setPressed('bSpin', view.spin);
+function openRoute(v) { $('routeBox').hidden = !v; setPressed('bRoute', v); }
+$('bRoute').onclick = () => { const v = $('routeBox').hidden; openRoute(v); if (v && !route.a) $('rFrom').focus(); };
+$('rSwap').onclick = () => { const a = route.a; route.a = route.b; route.b = a; $('rFrom').value = route.a ? route.a.ru : ''; $('rTo').value = route.b ? route.b.ru : ''; buildRoute(); };
+$('rFit').onclick = fitRoute;
+$('rClear').onclick = () => { route.a = route.b = null; $('rFrom').value = $('rTo').value = ''; buildRoute(); };
 
-// поиск
-const q = $('q'), sugg = $('sugg');
-const sorted = features.filter(f => f.ru).slice().sort((a, b) => a.ru.localeCompare(b.ru, 'ru'));
-let act = 0, list = [];
-function renderSugg() {
-  const s = q.value.trim().toLowerCase();
-  if (!s) { sugg.hidden = true; return; }
-  list = sorted.filter(f => f.ru.toLowerCase().includes(s) || f.properties.name.toLowerCase().includes(s))
-               .sort((a, b) => (b.ru.toLowerCase().startsWith(s)) - (a.ru.toLowerCase().startsWith(s))).slice(0, 8);
-  act = 0;
-  sugg.innerHTML = '';
-  if (!list.length) { sugg.innerHTML = '<button disabled>Ничего не найдено</button>'; sugg.hidden = false; return; }
-  list.forEach((f, i) => {
-    const b = document.createElement('button');
-    b.textContent = f.ru; if (i === act) b.className = 'act';
-    b.onmousedown = ev => { ev.preventDefault(); choose(f); };
-    sugg.appendChild(b);
-  });
-  sugg.hidden = false;
+// навигация
+$('nIn').onclick = () => zoomAnimated(0.5);
+$('nOut').onclick = () => zoomAnimated(2);
+function home() {
+  if (view.mode === 'globe') startAnim({ ...view, dist: 3.4, lat: 25 * RAD }, 1000, false);
+  else startAnim({ ...view, px: 0, py: 0, fz: fitFlat() }, 900, false);
 }
-function choose(f) { q.value = f.ru; sugg.hidden = true; q.blur(); flyTo(f); }
-q.addEventListener('input', renderSugg);
-q.addEventListener('blur', () => setTimeout(() => sugg.hidden = true, 100));
-q.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && list[act]) choose(list[act]);
-  else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-    e.preventDefault(); act = (act + (e.key === 'ArrowDown' ? 1 : -1) + list.length) % list.length;
-    [...sugg.children].forEach((b, i) => b.className = i === act ? 'act' : '');
-  } else if (e.key === 'Escape') sugg.hidden = true;
+$('nHome').onclick = home;
+addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('input')) return;
+  const step = 60;
+  const k = e.key;
+  if (k === 'ArrowLeft') pan(step, 0); else if (k === 'ArrowRight') pan(-step, 0);
+  else if (k === 'ArrowUp') pan(0, step); else if (k === 'ArrowDown') pan(0, -step);
+  else if (k === '+' || k === '=') zoomAnimated(0.6);
+  else if (k === '-' || k === '_') zoomAnimated(1 / 0.6);
+  else if (k === '0') home();
+  else if (k === '/') { e.preventDefault(); $('q').focus(); }
+  else return;
+  anim = k.startsWith('Arrow') ? null : anim; stopSpin();
 });
+
+// поиск: страны и города
+const byName = (a, b) => a.ru.localeCompare(b.ru, 'ru');
+function searchAll(s, { countriesToo = true } = {}) {
+  s = s.trim().toLowerCase().replace(/ё/g, 'е');
+  if (!s) return [];
+  const norm = x => x.toLowerCase().replace(/ё/g, 'е');
+  const score = o => {
+    const r = norm(o.ru), e = norm(o.en || '');
+    if (r === s || e === s) return 0;
+    if (r.startsWith(s) || e.startsWith(s)) return 1;
+    if (r.includes(s) || e.includes(s)) return 2;
+    return -1;
+  };
+  const out = [];
+  if (countriesToo) for (const f of features) { const sc = score(f); if (sc >= 0) out.push([sc, -1e10, f]); }
+  for (const c of cities) { const sc = score(c); if (sc >= 0) out.push([sc, -(c.pop + (c.cap === 2 ? 5e7 : 0)), c]); }
+  out.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  return out.slice(0, 9).map(x => x[2]);
+}
+function attachSearch(input, onChoose, opts) {
+  const box = document.createElement('div'); box.className = 'sugg'; box.hidden = true;
+  input.parentNode.appendChild(box);
+  let act = 0, list = [];
+  const render = () => {
+    list = searchAll(input.value, opts); act = 0;
+    box.innerHTML = '';
+    if (!input.value.trim()) { box.hidden = true; return; }
+    if (!list.length) { box.innerHTML = '<button disabled>Ничего не найдено</button>'; box.hidden = false; return; }
+    list.forEach((o, i) => {
+      const b = document.createElement('button');
+      b.innerHTML = '<span></span><small></small>';
+      b.firstChild.textContent = o.ru;
+      b.lastChild.textContent = o.kind === 'country' ? 'страна' : o.country + (o.cap === 2 ? ' · столица' : '');
+      if (i === act) b.className = 'act';
+      b.onmousedown = ev => { ev.preventDefault(); choose(o); };
+      box.appendChild(b);
+    });
+    box.hidden = false;
+  };
+  const choose = o => { input.value = o.ru; box.hidden = true; input.blur(); onChoose(o); };
+  input.addEventListener('input', render);
+  input.addEventListener('focus', () => input.value && render());
+  input.addEventListener('blur', () => setTimeout(() => box.hidden = true, 120));
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && list[act]) choose(list[act]);
+    else if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && list.length) {
+      e.preventDefault(); act = (act + (e.key === 'ArrowDown' ? 1 : -1) + list.length) % list.length;
+      [...box.children].forEach((b, i) => b.className = i === act ? 'act' : '');
+    } else if (e.key === 'Escape') { box.hidden = true; input.blur(); }
+  });
+}
+attachSearch($('q'), flyTo);
+attachSearch($('rFrom'), o => setEnd('a', o), { countriesToo: false });
+attachSearch($('rTo'), o => setEnd('b', o), { countriesToo: false });
 
 // ---------- цикл ----------
 updateSun(); setInterval(updateSun, 30000);
-let tPrev = performance.now();
+let tPrev = performance.now(), lastKey = '';
 function frame(t) {
   const raw = Math.max(0, (t - tPrev) / 1000), dt = Math.min(0.05, raw); tPrev = t;
   const target = view.mode === 'flat' ? 1 : 0;
@@ -501,20 +863,23 @@ function frame(t) {
     view.morph = target > view.morph ? Math.min(1, view.morph + step) : Math.max(0, view.morph - step);
   }
   if (anim) {
-    let k = Math.min(1, (t - anim.t0) / anim.dur); const e = k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+    const k = Math.min(1, (t - anim.t0) / anim.dur), e = k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
     for (const key of ['lat', 'lon', 'px', 'py']) view[key] = anim.from[key] + (anim.to[key] - anim.from[key]) * e;
-    // глобус: отлетаем назад в середине пути, затем приближаемся
-    const lift = Math.sin(k * PI) * 0.6;
-    view.dist = anim.from.dist + (anim.to.dist - anim.from.dist) * e + (view.mode === 'globe' ? lift : 0);
+    const lift = anim.swoop && view.mode === 'globe' ? Math.sin(k * PI) * Math.min(0.8, Math.abs(anim.to.lon - anim.from.lon) + Math.abs(anim.to.lat - anim.from.lat)) * 0.5 : 0;
+    view.dist = 1 + Math.exp(Math.log(anim.from.dist - 1) + (Math.log(anim.to.dist - 1) - Math.log(anim.from.dist - 1)) * e) + lift;
     view.fz = Math.exp(Math.log(anim.from.fz) + (Math.log(anim.to.fz) - Math.log(anim.from.fz)) * e);
     if (k >= 1) anim = null;
   }
-  if (view.spin && view.mode === 'globe') view.lon += dt * 0.06;
+  if (view.spin && view.mode === 'globe') view.lon += dt * 0.05;
   applyView();
   doHover();
-  renderer.render(scene, camera);
+  const key = [view.lat, view.lon, view.dist, view.px, view.py, view.fz, view.morph, innerWidth, innerHeight].join();
+  if (key !== lastKey || dirty || route.pts.length) { drawOverlay(t); }
+  if (key !== lastKey || dirty) renderer.render(scene, camera);
+  lastKey = key; dirty = false;
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+document.fonts && document.fonts.ready.then(() => dirty = true);
 })();
 </script>

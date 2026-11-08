@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Карта Земли</title>
+<title>Карта и маршруты</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
   :root { --bg: rgba(18,22,30,.88); --fg: #eef2f7; --muted: #9aa6b8; --accent: #4da3ff; }
@@ -24,6 +24,24 @@
   .leaflet-control-layers { background: var(--bg) !important; color: var(--fg); border: 0 !important; border-radius: 10px !important; }
   .leaflet-control-layers-toggle { filter: invert(1); }
   .leaflet-container { background: #0b0e14; }
+  #route { top: 64px; left: 56px; width: min(360px, calc(100vw - 120px)); padding: 12px; display: none; gap: 8px; max-height: calc(100% - 140px); overflow: hidden; flex-direction: column; box-sizing: border-box; }
+  #route.open { display: flex; }
+  #route .seg { display: flex; border: 1px solid rgba(255,255,255,.12); border-radius: 8px; overflow: hidden; }
+  #route .seg button { flex: 1; border: 0; background: transparent; color: var(--muted); padding: 7px 4px; cursor: pointer; font: 500 13px system-ui, sans-serif; }
+  #route .seg button.on { background: rgba(77,163,255,.3); color: var(--fg); }
+  #route .pt { display: flex; gap: 8px; align-items: center; }
+  #route .pt b { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; color: #fff; }
+  #route input { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.05); color: var(--fg); font-size: 14px; outline: none; }
+  #route .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  #route .row button { border: 1px solid rgba(255,255,255,.12); background: transparent; color: var(--fg); border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 13px; }
+  #route .sum { font-size: 15px; font-weight: 600; }
+  #route .hint { color: var(--muted); font-size: 12px; margin: 0; }
+  #steps { margin: 0; padding: 0; list-style: none; overflow-y: auto; min-height: 0; font-size: 13px; }
+  #steps li { display: flex; gap: 8px; padding: 6px 2px; border-top: 1px solid rgba(255,255,255,.06); cursor: pointer; }
+  #steps li:hover { background: rgba(77,163,255,.12); }
+  #steps li span:first-child { flex: none; width: 20px; text-align: center; }
+  #steps li small { margin-left: auto; color: var(--muted); white-space: nowrap; }
+  @media (max-width: 520px) { #route { left: 12px; top: 64px; width: calc(100vw - 24px); max-height: 55%; } }
   @media (max-width: 520px) { #search { left: 12px; right: 56px; } #tools { top: 64px; } }
 </style>
 </head>
@@ -38,8 +56,21 @@
 
 <div id="tools" class="panel">
   <button id="locate" title="Где я?">📍</button>
+  <button id="routeBtn" title="Маршрут">🚗</button>
   <button id="night" title="День / ночь">🌗</button>
   <button id="world" title="Вся Земля">🌍</button>
+</div>
+
+<div id="route" class="panel">
+  <div class="seg" role="group" aria-label="Способ передвижения">
+    <button data-p="car" class="on">🚗 Авто</button><button data-p="foot">🚶 Пешком</button><button data-p="bike">🚲 Велосипед</button>
+  </div>
+  <div class="pt"><b style="background:#2e9b4f">A</b><input id="rA" placeholder="Откуда: адрес или место" autocomplete="off"></div>
+  <div class="pt"><b style="background:#d6453d">B</b><input id="rB" placeholder="Куда: адрес или место" autocomplete="off"></div>
+  <div class="row"><button id="rMe">📍 Я здесь → A</button><button id="rSwap">⇅ Поменять</button><button id="rClr">Сбросить</button></div>
+  <p class="hint" id="rMsg">Введите адреса и нажмите Enter, или кликните по карте: первый клик — A, второй — B. Точки можно перетаскивать.</p>
+  <div class="sum" id="rSum" hidden></div>
+  <ol id="steps"></ol>
 </div>
 
 <div id="coords" class="panel">—</div>
@@ -81,6 +112,7 @@ map.on('mousemove', e => {
   coordsEl.textContent = fmt(e.latlng.lat, 'с.ш.', 'ю.ш.') + ', ' + fmt(wrapLng(e.latlng.lng), 'в.д.', 'з.д.');
 });
 map.on('click', e => {
+  if (document.getElementById('route').classList.contains('open')) return;
   const lat = e.latlng.lat.toFixed(5), lng = wrapLng(e.latlng.lng).toFixed(5);
   L.popup().setLatLng(e.latlng).setContent(`<b>${lat}, ${lng}</b><br><small>Зум ${map.getZoom()}</small>`).openOn(map);
 });
@@ -152,6 +184,134 @@ const nightBtn = document.getElementById('night');
 nightBtn.onclick = () => {
   if (map.hasLayer(night)) { night.remove(); nightBtn.classList.remove('on'); }
   else { night.addTo(map); nightBtn.classList.add('on'); }
+};
+
+// --- Навигация по дорогам (OSRM, данные OpenStreetMap) --------------------
+const routeP = document.getElementById('route'), routeBtn = document.getElementById('routeBtn');
+const R = { a: null, b: null, profile: 'car', line: null, mA: null, mB: null, req: 0 };
+const pin = (c, t) => L.divIcon({ className: '', iconSize: [26, 26], iconAnchor: [13, 13],
+  html: `<div style="width:26px;height:26px;border-radius:50%;background:${c};color:#fff;font:700 13px system-ui;display:grid;place-items:center;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.5)">${t}</div>` });
+routeBtn.onclick = () => {
+  const open = routeP.classList.toggle('open');
+  routeBtn.classList.toggle('on', open);
+  map.getContainer().style.cursor = open ? 'crosshair' : '';
+};
+routeP.querySelectorAll('.seg button').forEach(b => b.onclick = () => {
+  routeP.querySelectorAll('.seg button').forEach(x => x.classList.toggle('on', x === b));
+  R.profile = b.dataset.p; calcRoute();
+});
+function setPt(which, latlng, label) {
+  R[which] = L.latLng(latlng);
+  const key = which === 'a' ? 'mA' : 'mB';
+  if (!R[key]) {
+    R[key] = L.marker(R[which], { draggable: true, icon: pin(which === 'a' ? '#2e9b4f' : '#d6453d', which.toUpperCase()) }).addTo(map);
+    R[key].on('dragend', e => { R[which] = e.target.getLatLng(); document.getElementById(which === 'a' ? 'rA' : 'rB').value = fmtPt(R[which]); calcRoute(); });
+  } else R[key].setLatLng(R[which]);
+  document.getElementById(which === 'a' ? 'rA' : 'rB').value = label || fmtPt(R[which]);
+  calcRoute();
+}
+const fmtPt = ll => ll.lat.toFixed(5) + ', ' + wrapLng(ll.lng).toFixed(5);
+map.on('click', e => {
+  if (!routeP.classList.contains('open')) return;
+  map.closePopup();
+  setPt(!R.a ? 'a' : !R.b ? 'b' : 'b', e.latlng);
+});
+async function geocode(text) {
+  const m = text.match(/^\s*(-?\d+(?:\.\d+)?)\s*[,; ]\s*(-?\d+(?:\.\d+)?)\s*$/);
+  if (m) return { lat: +m[1], lon: +m[2], display_name: text };
+  const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=ru&q=' + encodeURIComponent(text));
+  return (await r.json())[0];
+}
+['a', 'b'].forEach(w => {
+  const inp = document.getElementById(w === 'a' ? 'rA' : 'rB');
+  inp.addEventListener('keydown', async e => {
+    if (e.key !== 'Enter' || !inp.value.trim()) return;
+    msg('Ищу адрес…');
+    try {
+      const p = await geocode(inp.value);
+      if (!p) return msg('Адрес не найден. Уточните запрос или кликните по карте.');
+      setPt(w, [+p.lat, +p.lon], p.display_name.split(',').slice(0, 3).join(','));
+    } catch { msg('Нет связи с сервисом поиска адресов.'); }
+  });
+});
+document.getElementById('rMe').onclick = () => {
+  if (!navigator.geolocation) return msg('Браузер не умеет определять местоположение.');
+  msg('Определяю местоположение…');
+  navigator.geolocation.getCurrentPosition(p => setPt('a', [p.coords.latitude, p.coords.longitude], 'Моё местоположение'),
+    e => msg('Не удалось определить местоположение: ' + e.message), { enableHighAccuracy: true, timeout: 15000 });
+};
+document.getElementById('rSwap').onclick = () => {
+  const a = R.a, b = R.b, va = document.getElementById('rA').value, vb = document.getElementById('rB').value;
+  if (b) setPtSilent('a', b, vb); else clearPt('a');
+  if (a) setPtSilent('b', a, va); else clearPt('b');
+  calcRoute();
+};
+function setPtSilent(w, ll, label) { const c = calcRoute; calcRoute = () => {}; setPt(w, ll, label); calcRoute = c; }
+function clearPt(w) {
+  const key = w === 'a' ? 'mA' : 'mB';
+  if (R[key]) { R[key].remove(); R[key] = null; }
+  R[w] = null; document.getElementById(w === 'a' ? 'rA' : 'rB').value = '';
+}
+document.getElementById('rClr').onclick = () => { clearPt('a'); clearPt('b'); calcRoute(); };
+function msg(t) { const m = document.getElementById('rMsg'); m.textContent = t; m.hidden = !t; }
+
+const DIR = { left: 'налево', right: 'направо', 'slight left': 'плавно налево', 'slight right': 'плавно направо',
+  'sharp left': 'резко налево', 'sharp right': 'резко направо', straight: 'прямо', uturn: 'разворот' };
+const ARR = { left: '←', right: '→', 'slight left': '↖', 'slight right': '↗', 'sharp left': '↙', 'sharp right': '↘', straight: '↑', uturn: '↶' };
+function stepText(s) {
+  const t = s.maneuver.type, mod = s.maneuver.modifier, road = s.name ? ` на ${s.name}` : '';
+  const onto = s.name ? ` по ${s.name}` : '';
+  switch (t) {
+    case 'depart': return 'Начните движение' + onto;
+    case 'arrive': return 'Вы прибыли' + (mod === 'left' ? ' — пункт слева' : mod === 'right' ? ' — пункт справа' : '');
+    case 'roundabout': case 'rotary': return `На круговом движении — ${s.maneuver.exit || ''}-й съезд` + road;
+    case 'exit roundabout': case 'exit rotary': return 'Съезд с кольца' + road;
+    case 'merge': return 'Перестройтесь' + (mod ? ' ' + (DIR[mod] || '') : '') + road;
+    case 'on ramp': return 'Въезд на магистраль' + road;
+    case 'off ramp': return 'Съезд с магистрали' + road;
+    case 'fork': return 'На развилке держитесь ' + (mod && mod.includes('left') ? 'левее' : 'правее') + road;
+    case 'end of road': return 'В конце дороги ' + (DIR[mod] || '') + road;
+    case 'continue': case 'new name': return (mod && mod !== 'straight' ? 'Поверните ' + DIR[mod] : 'Продолжайте прямо') + onto;
+    default: return mod === 'uturn' ? 'Развернитесь' + road : mod && mod !== 'straight' ? 'Поверните ' + DIR[mod] + road : 'Прямо' + onto;
+  }
+}
+const fmtDist = m => m >= 1000 ? (m / 1000).toFixed(m >= 10000 ? 0 : 1).replace('.', ',') + ' км' : Math.round(m / 10) * 10 + ' м';
+const fmtTime = s => { const h = Math.floor(s / 3600), m = Math.round(s % 3600 / 60); return (h ? h + ' ч ' : '') + m + ' мин'; };
+const SPEED = { foot: 5, bike: 16 };  // км/ч — для пешком и велосипеда считаем время сами
+let calcRoute = async function () {
+  const steps = document.getElementById('steps'), sum = document.getElementById('rSum');
+  if (R.line) { R.line.remove(); R.line = null; }
+  steps.innerHTML = ''; sum.hidden = true;
+  if (!R.a || !R.b) { msg(R.a ? 'Теперь выберите точку B.' : 'Введите адреса и нажмите Enter, или кликните по карте: первый клик — A, второй — B. Точки можно перетаскивать.'); return; }
+  const id = ++R.req;
+  msg('Строю маршрут…');
+  const svc = { car: 'routed-car', foot: 'routed-foot', bike: 'routed-bike' }[R.profile];
+  const url = `https://routing.openstreetmap.de/${svc}/route/v1/driving/${R.a.lng},${R.a.lat};${R.b.lng},${R.b.lat}?overview=full&geometries=geojson&steps=true&alternatives=false`;
+  try {
+    const res = await fetch(url), data = await res.json();
+    if (id !== R.req) return;
+    if (data.code !== 'Ok' || !data.routes.length) return msg('Маршрут не найден: между точками нет дорог (например, через океан).');
+    const r = data.routes[0];
+    const coords = r.geometry.coordinates.map(c => [c[1], c[0]]);
+    R.line = L.layerGroup([
+      L.polyline(coords, { color: '#0b3d91', weight: 9, opacity: 0.6 }),
+      L.polyline(coords, { color: '#4da3ff', weight: 5 })
+    ]).addTo(map);
+    map.fitBounds(L.latLngBounds(coords), { padding: [40, 40] });
+    const secs = SPEED[R.profile] ? r.distance / 1000 / SPEED[R.profile] * 3600 : r.duration;
+    sum.textContent = fmtDist(r.distance) + ' · ' + fmtTime(secs);
+    sum.hidden = false; msg('');
+    for (const leg of r.legs) for (const s of leg.steps) {
+      const li = document.createElement('li');
+      const ic = s.maneuver.type === 'arrive' ? '🏁' : s.maneuver.type === 'depart' ? '🟢' : (ARR[s.maneuver.modifier] || '↑');
+      li.innerHTML = '<span></span><span></span><small></small>';
+      li.children[0].textContent = ic; li.children[1].textContent = stepText(s);
+      li.children[2].textContent = s.distance ? fmtDist(s.distance) : '';
+      const [lng, lat] = s.maneuver.location;
+      li.onclick = () => map.flyTo([lat, lng], 17);
+      steps.appendChild(li);
+    }
+  } catch { if (id === R.req) msg('Нет связи с сервисом маршрутов. Проверьте интернет и попробуйте ещё раз.'); }
 };
 </script>
 </body>
