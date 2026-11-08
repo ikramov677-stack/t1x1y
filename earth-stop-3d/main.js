@@ -19,7 +19,7 @@ const LINES = [
   ['continent', 'А океаны стекут к полюсам, и на экваторе появится один огромный материк.'], ['good', 'Хорошая новость: учёные уверены, что этого не случится.'],
   ['sub', 'Подписывайтесь на «Факты за минуту»!'],
 ].map(([id, text]) => ({ id, text }));
-const VOICE = null;
+const VOICE = [[0.06,3.26],[3.77,6.57],[7.12,11.34],[11.77,16.71],[17.09,18.85],[19.27,23.19],[23.58,26.57],[26.98,30.14],[30.47,33.12],[33.54,35.98],[36.32,39.61],[40.02,42.60],[43.02,45.25],[45.64,49.19],[49.52,54.07],[54.53,57.90],[58.30,60.16]];
 const VOICE_OFFSET = 0.4, BPM = 80, BEAT = 60 / BPM;
 const snapB = t => Math.round(t / (BEAT / 2)) * BEAT / 2;
 const TL = (() => {
@@ -183,7 +183,7 @@ const plane = new THREE.Group(); skyS.add(plane);
 { const white = std('#f2f2f4', .35, { metalness: .2 }), grey = std('#a8acb4', .4, { metalness: .5 }), blue = std('#1a3a8a', .4), glass = std('#0a1018', .1, { metalness: .9 });
   const fus = new THREE.Mesh(new THREE.CapsuleGeometry(.42, 6.2, 10, 24), white); fus.rotation.x = Math.PI / 2; plane.add(fus);
   const stripe = new THREE.Mesh(new THREE.CylinderGeometry(.425, .425, 5.6, 24, 1, true, Math.PI * .35, Math.PI * .3), blue); stripe.rotation.x = Math.PI / 2; plane.add(stripe);
-  const nose = new THREE.Mesh(new THREE.SphereGeometry(.2, 16, 10, 0, Math.PI * 2, 0, Math.PI * .4), glass); nose.position.set(0, .2, 3.35); nose.rotation.x = .9; plane.add(nose);
+  for (const s of [-1, 1]) { const ws = new THREE.Mesh(new THREE.BoxGeometry(.14, .07, .02), glass); ws.position.set(s * .1, .24, 3.3); ws.rotation.set(-.7, s * .5, 0); plane.add(ws); }
   for (let k = 0; k < 22; k++) for (const s of [-1, 1]) { const w = new THREE.Mesh(new THREE.BoxGeometry(.02, .08, .06), glass); w.position.set(s * .41, .14, 2.4 - k * .22); plane.add(w); }
   const wingShape = new THREE.Shape(); wingShape.moveTo(0, .9); wingShape.lineTo(4.3, -1.1); wingShape.lineTo(4.3, -1.5); wingShape.lineTo(0, -.9);
   for (const s of [-1, 1]) { const wg = new THREE.Mesh(new THREE.ExtrudeGeometry(wingShape, { depth: .08, bevelEnabled: false }), white); wg.rotation.x = -Math.PI / 2; wg.scale.x = s; wg.position.set(0, -.15, 0); wg.rotation.y = 0; plane.add(wg); wg.rotation.z = 0;
@@ -311,7 +311,7 @@ const SH = {
   plane(lt, D, t) { SETS.sky.visible = true; const sd = new THREE.Vector3(.6, .25, -1).normalize(); const u2 = skyD.material.uniforms; u2.a.value.set('#0e3a96'); u2.b.value.set('#7aaee8'); u2.c.value.set('#c8d8ea'); u2.sd.value.copy(sd); u2.ss.value = .6;
     plane.position.set(0, 3, 0); plane.rotation.set(.04, -.5, Math.sin(lt * .5) * .03 - .05); puffs.position.z = (lt * 30) % 40; keyAt(sd.x * 50, sd.y * 50, sd.z * 50, 0, 0, 0, 2.6); amb.intensity = .8; amb.color.set('#c8dcff'); amb.groundColor.set('#e8e8f0'); S.fog = new THREE.Fog('#c8dcf0', 200, 1600);
     const u = eio(lt / D); look(lerp(-9, -7.5, u), lerp(1.6, 1.9, u), lerp(9, 7.5, u), 0, 3.6, -1, 42, 11); P.dof.aper = 1;
-    bar(140, 330, 800, .55, seg(lt, .3, 1.2), '#9ad0ff', 'САМОЛЁТ', '≈ 900 км/ч'); bar(140, 470, 800, 1, seg(lt, .9, 1.8), '#ffb060', 'ЗЕМЛЯ', '1 670 км/ч'); },
+    bar(140, 330, 800, .55, seg(lt, .1, .7), '#9ad0ff', 'САМОЛЁТ', '≈ 900 км/ч'); bar(140, 470, 800, 1, seg(lt, .4, 1.0), '#ffb060', 'ЗЕМЛЯ', '1 670 км/ч'); },
   lift(lt, D, t) { SETS.city.visible = true; cityReset(t); keyAt(30, 40, 20, 0, 0, 0, 2.2); amb.intensity = .55; citySky.material.uniforms.sw.value = .35;
     const k = seg(lt, D * .2, D);
     cars.forEach((c, i) => { const d = Math.max(0, k - i * .04); c.position.x += ei(d) * 30 * (1 + hash(i) * .5); c.position.y += Math.sin(clamp(d) * Math.PI * .9) * (2 + hash(i + 1) * 3); c.rotation.z = -d * (2 + hash(i + 2) * 3); c.rotation.x = d * hash(i + 3); });
