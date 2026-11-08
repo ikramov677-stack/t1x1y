@@ -165,7 +165,7 @@
 <div id="tools">
   <button id="locate" title="Где я?" aria-label="Моё местоположение">📍</button>
   <button id="marksToggle" class="on" title="Показывать мои метки" aria-label="Показывать мои метки">⭐</button>
-  <button id="world" title="Вся Земля" aria-label="Вся Земля">🌍</button>
+  <button id="world" title="3D-глобус" aria-label="Вернуться на глобус">🌍</button>
 </div>
 <div id="toast" hidden></div>
 
@@ -635,7 +635,30 @@ map.on('locationfound', e => {
     L.circleMarker(e.latlng, { radius: 8, color: '#fff', weight: 3, fillColor: '#2f6fec', fillOpacity: 1 })]).addTo(map);
 });
 map.on('locationerror', e => toast('Не удалось определить местоположение: ' + e.message));
-$('world').onclick = () => map.flyTo([30, 20], 3);
+// ---------- связь с 3D-глобусом ----------
+const embedded = window.parent !== window;
+$('world').onclick = () => {
+  const c = map.getCenter(), z = map.getZoom();
+  if (embedded) parent.postMessage({ type: 'earth:globe', lat: c.lat, lon: wrapLng(c.lng), zoom: z }, '*');
+  else location.href = 'index.html';
+};
+addEventListener('message', e => {
+  const d = e.data || {};
+  if (d.type === 'earth:goto') {
+    map.setView([d.lat, d.lon], d.zoom ?? 14, { animate: false });
+    if (d.name) openPlace({ lat: d.lat, lon: d.lon, name: d.name, cat: d.cat || '', ic: '📍', tags: {} });
+    marks = store.get('earthmap.marks', []); renderMarks();
+  }
+});
+// начальная точка из адреса: online.html#41.31,69.28,14
+{ const m = location.hash.match(/^#(-?[\d.]+),(-?[\d.]+),(\d+)/); if (m) map.setView([+m[1], +m[2]], +m[3]); }
+if (embedded) parent.postMessage({ type: 'earth:ready' }, '*');
+// если подложка не грузится (нет доступа к серверам карт) — сказать об этом
+let tileOk = 0, tileBad = 0;
+map.eachLayer(l => l instanceof L.TileLayer && l.on({ tileload: () => tileOk++, tileerror: () => {
+  if (++tileBad === 8 && !tileOk) toast('Карта улиц не загружается: нет доступа к серверам карт. Откройте файл index.html в браузере с интернетом.');
+} }));
+map.on('baselayerchange', e => e.layer.on && e.layer.on('tileload', () => tileOk++));
 </script>
 </body>
 </html>

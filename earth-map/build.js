@@ -31,6 +31,7 @@ html = html.replace('/*TOPO*/null', () => JSON.stringify(topo))
            .replace('/*NAMES*/null', () => JSON.stringify(names))
            .replace('/*CITIES*/null', () => JSON.stringify(cities))
            .replace('/*CC*/null', () => JSON.stringify(cc))
+           .replace('/*STREET*/null', () => JSON.stringify(fs.readFileSync(path.join(__dirname, 'online.html'), 'utf8')).replace(/</g, '\\u003c'))
            .replace('__DAY__', () => uri('earth-blue-marble.jpg'))
            .replace('__NIGHT__', () => uri('earth-night.jpg'));
 fs.writeFileSync(path.join(__dirname, 'index.html'), html);
