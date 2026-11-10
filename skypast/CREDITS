@@ -1,0 +1,8 @@
+«Ты никогда не видел настоящее небо» — credits for third-party material
+
+Drawing: plain 2D canvas — the eye, Moon, Sun, galaxy and every figure are drawn in code for this film.
+Render/mux tools: Lemo-Opuscar core/ (MIT) — https://github.com/lemomo-ai/lemo-opuscar.
+Fonts: Oswald, Inter (SIL Open Font License 1.1, via Google Fonts).
+Music and sound effects: synthesized in numpy for this film (mix.py); no samples.
+Voice: to be added — ElevenLabs recording supplied by the channel owner.
+Facts: light from the Moon takes about 1.3 s, from the Sun about 8 min 20 s; the Andromeda galaxy is about 2.5 million light-years away; Homo sapiens appeared about 300 000 years ago.
