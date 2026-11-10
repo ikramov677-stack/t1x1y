@@ -30,7 +30,7 @@ def piano(m, d=3.0, v=1.0):
     return lp(s * np.minimum(1, x / .008), 2600) * .11 * v
 def pulse(v=1.0): x = tt(.5); return np.sin(2 * np.pi * (46 + 30 * np.exp(-x * 20)) * x) * np.exp(-x * 7) * .35 * v
 mus = np.zeros(N)
-light_start = cuts['sub'][0]
+light_start = cuts['final'][0]
 DREAM = [[38, 50, 53, 57], [34, 46, 50, 53], [41, 53, 57, 60], [36, 48, 52, 55]]   # Dm – Bb – F – C
 t = 0.0; k = 0
 while t < DUR:
