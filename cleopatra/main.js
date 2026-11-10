@@ -16,7 +16,11 @@ const LINES = [
   ['climax', 'Получается, для Клеопатры египетские пирамиды были ещё более древней историей, чем для нас сама Клеопатра!'],
   ['sub', 'А вы знали об этом? Подписывайтесь! Здесь каждый день факты, которые взрывают мозг!'],
 ].map(([id, text]) => ({ id, text }));
-const VOICE = null, PH = null, WORDS = {};
+const VOICE = [[0.05,5.60],[6.17,10.69],[11.18,15.00],[15.53,20.88],[21.40,26.83],[27.34,33.63],[34.05,39.45]];
+const PH = [[0.05,1.02,'Вы не поверите,'],[1.10,3.08,'но Клеопатра жила ближе к появлению iPhone,'],[3.17,5.60,'чем к строительству египетских пирамид!'],[6.17,10.69,'Великая пирамида Хеопса была построена примерно 4\u00a0500 лет назад.'],
+  [11.18,15.00,'А Клеопатра родилась только в 69 году до нашей эры!'],[15.53,17.26,'Но самое удивительное впереди!'],[17.80,20.88,'Клеопатра умерла в 30 году до нашей эры.'],[21.40,24.05,'Первый iPhone появился в 2007 году.'],[24.43,26.83,'Между ними прошло около 2\u00a0000 лет!'],
+  [27.34,31.73,'Получается, для Клеопатры египетские пирамиды были ещё более древней историей,'],[31.95,33.63,'чем для нас сама Клеопатра!'],[34.05,35.02,'А вы знали об этом?'],[35.49,36.30,'Подписывайтесь!'],[36.48,39.45,'Здесь каждый день факты, которые взрывают мозг!']];
+const WORDS = { 'hook|ближе': 2.1, 'pyramid|четыре': 8.9, 'born|шестьдесят': 13.0, 'twist|умерла': 18.5, 'twist|тридцатом': 19.2, 'iphone|две тысячи седьмом': 22.9, 'iphone|Между': 24.43, 'climax|пирамиды': 29.2, 'climax|чем для нас': 31.95, 'sub|Подписывайтесь': 35.49, 'sub|взрывают': 38.3 };
 const VOICE_OFFSET = 0.4, BPM = 84, BEAT = 60 / BPM;
 const snapB = t => Math.round(t / (BEAT / 2)) * BEAT / 2;
 const TL = (() => {
@@ -349,7 +353,7 @@ const SH = {
       cleo({ x: 250, y: 1150, s: 2.0, nod: -.08, rim: '#ffd890' }); dust(40, 8, 0, 800, W, 1500, t, '#ffe2b0', .5); grade('#8a4a10', .2);
     },
     ui(lt, D, t) {
-      const t1 = word('climax', 'пирамиды') - .3, t2 = word('climax', 'чем для нас') - .2, tz = Math.max(t2 + 1.4, D - 2.2);
+      const t1 = word('climax', 'пирамиды') - .3, t2 = word('climax', 'чем для нас') - .2, tz = D + 9;
       const bar = (y, lab, yrs, frac, col, p) => { if (p <= 0) return; g.save(); g.globalAlpha = eo(p); g.font = '500 38px Oswald'; g.letterSpacing = '3px'; g.textAlign = 'left'; g.textBaseline = 'middle'; g.shadowColor = '#000'; g.shadowBlur = 14; g.fillStyle = '#fff'; g.fillText(lab, 100, y - 44); g.textAlign = 'right'; g.fillStyle = col; g.fillText(yrs, 980, y - 44); g.shadowColor = col; g.shadowBlur = 20; g.beginPath(); g.roundRect(100, y - 16, 880 * frac * eio(p), 32, 16); g.fillStyle = col; g.fill(); g.restore(); };
       const hide = 1 - seg(lt, tz - .3, tz);
       bar(270, 'ПИРАМИДЫ → КЛЕОПАТРА', '≈ 2 500 ЛЕТ', 1, GOLD, seg(lt, t1, t1 + .8) * hide); bar(410, 'КЛЕОПАТРА → iPHONE', '≈ 2 000 ЛЕТ', .8, '#5ad8ff', seg(lt, t2, t2 + .8) * hide);
@@ -360,7 +364,7 @@ const SH = {
     w(lt, D, t) { G = g; desert(t, { sx: 800 }); g.fillStyle = 'rgba(10,5,0,.3)'; g.fillRect(0, 0, W, H); cleo({ x: 250, y: 1150, s: 2.0, nod: -.05, rim: '#ffd890' }); dust(40, 8, 0, 800, W, 1500, t, '#ffe2b0', .6); grade('#8a4a10', .2); },
     ui(lt, D, t) {
       const ts = word('sub', 'Подписывайтесь') - .1, tc = ts + 1.0, tm = word('sub', 'взрывают') - .2;
-      title('А ВЫ ЗНАЛИ?', 230, seg(lt, .1, .5) * (1 - seg(lt, tm - .3, tm)), 120); title('ФАКТЫ', 220, seg(lt, tm, tm + .4), 150, { fill: GOLD, glow: 'rgba(255,140,20,.8)' }); title('ЗА МИНУТУ', 350, seg(lt, tm + .2, tm + .6), 90);
+      title('ЗАДУМАЙСЯ!', 280, seg(lt, .05, .4) * (1 - seg(lt, tm - .3, tm)), 160, { fill: GOLD, glow: 'rgba(255,140,20,.9)' }); title('ФАКТЫ', 220, seg(lt, tm, tm + .4), 150, { fill: GOLD, glow: 'rgba(255,140,20,.8)' }); title('ЗА МИНУТУ', 350, seg(lt, tm + .2, tm + .6), 90);
       const bp = seg(lt, ts, ts + .4), done = lt > tc; if (bp > 0) { g.save(); g.translate(W / 2 + 120, 1000); const k = back(bp) * (lt > tc ? 1 - .06 * Math.exp(-(lt - tc) * 10) : 1); g.scale(k, k); g.beginPath(); g.roundRect(-300, -80, 600, 160, 80); g.fillStyle = done ? '#3a3a40' : '#ff1f2e'; g.shadowColor = 'rgba(0,0,0,.5)'; g.shadowBlur = 30; g.fill(); g.shadowBlur = 0; g.font = '500 66px Oswald'; g.letterSpacing = '6px'; g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(done ? 'ВЫ ПОДПИСАНЫ' : 'ПОДПИСАТЬСЯ', 0, 4); g.restore(); }
       if (bp > .5) { const u = eio(seg(lt, ts + .4, tc)); g.save(); g.translate(lerp(1000, 760, u), lerp(1300, 1030, u)); g.beginPath(); [[0, 0], [0, 64], [16, 50], [28, 76], [40, 70], [28, 46], [48, 44]].forEach((p, i) => i ? g.lineTo(...p) : g.moveTo(...p)); g.closePath(); g.fillStyle = '#fff'; g.fill(); g.lineWidth = 4; g.strokeStyle = '#000'; g.stroke(); g.restore(); }
     },
@@ -403,8 +407,8 @@ function events() {
   add('fire', at('born', 0), { d: dur('born') + dur('twist') }); add('hit', w('born', 'шестьдесят') - .2); add('count', w('born', 'шестьдесят'), { d: 1.4 });
   add('riser', at('twist', 0), { d: Math.max(.6, word('twist', 'умерла') - .2) }); add('hit', w('twist', 'тридцатом') - .2, { v: .9 }); add('down', w('twist', 'умерла') - .2, { d: 1.4 });
   add('boom', at('iphone', 0)); add('whoosh', at('iphone', 0), { d: .8 }); add('ding', w('iphone', 'две тысячи седьмом') - .2); add('count', w('iphone', 'Между') + .1, { d: 1.3 }); add('chime', w('iphone', 'Между') + 1.5);
-  add('wind', at('climax', 0), { d: dur('climax') + dur('sub') }); add('riser', at('climax', 0), { d: dur('climax') - 2.2 }); add('pop', w('climax', 'пирамиды') - .3); add('pop', w('climax', 'чем для нас') - .2);
-  add('boom', at('climax', Math.max(word('climax', 'чем для нас') + 1.2, dur('climax') - 2.2)));
+  add('wind', at('climax', 0), { d: dur('climax') + dur('sub') }); add('riser', at('climax', 0), { d: dur('climax') }); add('pop', w('climax', 'пирамиды') - .3); add('pop', w('climax', 'чем для нас') - .2);
+  add('boom', at('sub', .05));
   add('swell', at('sub', 0), { d: dur('sub') }); add('click', w('sub', 'Подписывайтесь') + .9); add('chime', w('sub', 'Подписывайтесь') + .95); add('boom', w('sub', 'взрывают') - .2, { v: .7 });
   for (const p of SUBS) add('sub', Math.max(0, p.a), { t1: +p.b.toFixed(3), text: p.text });
   return ev.sort((a, b) => a.t - b.t);

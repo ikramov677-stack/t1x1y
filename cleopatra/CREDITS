@@ -4,6 +4,6 @@ Drawing: plain 2D canvas — every figure, building and light drawn in code for 
 Render/mux tools: Lemo-Opuscar core/ (MIT) — https://github.com/lemomo-ai/lemo-opuscar.
 Fonts: Oswald, Inter (SIL Open Font License 1.1, via Google Fonts).
 Music and sound effects: synthesized in numpy for this film (mix.py); no samples.
-Voice: to be added — ElevenLabs recording supplied by the channel owner.
+Voice: ElevenLabs recording (Mark) supplied by the channel owner.
 Facts: Great Pyramid of Giza completed c. 2560 BC; Cleopatra VII born 69 BC, died 30 BC; first iPhone released 2007.
 iPhone is a trademark of Apple Inc.; it is named here only as a historical date.
