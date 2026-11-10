@@ -1,0 +1,10 @@
+«72 секунды, которые напугали весь мир» — credits for third-party material
+
+Drawing: plain 2D canvas — telescope, screens, printout and star map are drawn in code for this film.
+The printout is a stylised re-drawing: only the sequence 6EQUJ5 and the red circle with "Wow!" follow the real document; the other digits are filler.
+The telescope is drawn as a generic dish; the real Big Ear telescope was a flat-reflector design.
+Render/mux tools: Lemo-Opuscar core/ (MIT) — https://github.com/lemomo-ai/lemo-opuscar.
+Fonts: Oswald, Inter (SIL Open Font License 1.1, via Google Fonts).
+Music and sound effects: synthesized in numpy for this film (mix.py); no samples.
+Voice: to be added — ElevenLabs recording supplied by the channel owner.
+Facts: the Wow! signal was recorded on 15 August 1977 by the Big Ear radio telescope (Ohio State University), lasted 72 seconds, came from the direction of Sagittarius, peaked about 30 times above background, was noted by Jerry Ehman, and has never been detected again. Its origin is unexplained; an extraterrestrial source is not proven.
