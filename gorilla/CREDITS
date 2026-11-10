@@ -1,0 +1,8 @@
+«Твой мозг тебя обманул» — credits for third-party material
+
+Drawing: plain 2D canvas — the hall, players and gorilla are drawn in code for this film.
+Render/mux tools: Lemo-Opuscar core/ (MIT) — https://github.com/lemomo-ai/lemo-opuscar.
+Fonts: Oswald, Inter (SIL Open Font License 1.1, via Google Fonts).
+Music and sound effects: synthesized in numpy for this film (mix.py); no samples.
+Voice: to be added — ElevenLabs recording supplied by the channel owner.
+Based on the selective-attention ("invisible gorilla") experiment by Daniel Simons and Christopher Chabris, 1999; this film is its own re-drawn version and uses none of the original footage.
