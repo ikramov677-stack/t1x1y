@@ -1,0 +1,13 @@
+«Книга, которую никто не может прочитать» — credits for third-party material
+
+Manuscript pages: real scans of the Voynich manuscript (Beinecke MS 408), Beinecke Rare Book & Manuscript Library, Yale University.
+Downloaded from Wikimedia Commons, files "Voynich Manuscript (N).jpg" for N = 1, 3, 9, 113, 116, 119, 130, 142, 146, 150 (pages/pNNN.jpg), 1536 px on the long side.
+Licence on Commons: {{PD-Art|PD-old-auto-1923}} — public domain (faithful reproductions of a 15th-century work). https://commons.wikimedia.org/wiki/Category:Voynich_manuscript
+The scans are shown unaltered except for cropping, camera moves and candle-light colour grading added in this film.
+
+Everything else (table, candle, scholar silhouette, light, titles) is drawn in code for this film.
+Render/mux tools: Lemo-Opuscar core/ (MIT) — https://github.com/lemomo-ai/lemo-opuscar.
+Fonts: Oswald, Inter (SIL Open Font License 1.1, via Google Fonts).
+Music and sound effects: synthesized in numpy for this film (mix.py); no samples.
+Voice: to be added — ElevenLabs recording supplied by the channel owner.
+Facts: the vellum was radiocarbon-dated to 1404–1438 (University of Arizona, 2009); no proposed decipherment has been generally accepted.
