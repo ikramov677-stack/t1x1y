@@ -1,0 +1,10 @@
+«12 минут без сердцебиения» — credits for third-party material
+
+Drawing: plain 2D canvas — hall, players, hospital, monitor and all figures are drawn in code for this film. Figures are generic silhouettes, not likenesses of real people.
+Render/mux tools: Lemo-Opuscar core/ (MIT) — https://github.com/lemomo-ai/lemo-opuscar.
+Fonts: Oswald, Inter (SIL Open Font License 1.1, via Google Fonts).
+Music and sound effects: synthesized in numpy for this film (mix.py); no samples.
+Voice: to be added — ElevenLabs recording supplied by the channel owner.
+Story: the 2019 case of a 22-year-old who collapsed in cardiac arrest during an indoor soccer match; his heart did not pump blood for 12 minutes (resuscitation was performed throughout), and doctors at Mount Sinai cooled his body to about 33 °C (91.4 °F) for 24 hours to protect the brain.
+Sources: Mount Sinai patient story https://mountsinai.org/about/patient-stories/22-year-old-heart-stopped ; Fox News https://www.foxnews.com/health/sudden-cardiac-arrest-new-jersey-man-hypothermia ; PhillyVoice. Mount Sinai spells the name "Brad Phillips", the news reports "Brad Phelps".
+This film is not medical advice.
